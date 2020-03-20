@@ -31,34 +31,18 @@ int main() {
     vector<int> memory(2<<15, -1);
     unordered_map<string, int> labels; // maps from label to memory address
     unordered_map<string, pair<int, string>> variables; // maps from variable name to a pair of it's memory address and string value
-    string noOperand = "NOP";
-    string singleOperand = "NOT,JZ,JNZ,JE,JNE,JA,JAE,JB,JBE,JNAE,JNB,JNBE,JNC,JC,PUSH,POP,INT";
-    string twoOperands = "MOV,ADD,SUB,MUL,DIV,XOR,OR,AND,RCL,RCR,SHL,SHR";
+    string instructions = "NOP,NOT,JZ,JNZ,JE,JNE,JA,JAE,JB,JBE,JNAE,JNB,JNBE,JNC,JC,PUSH,POP,INT,MOV,ADD,SUB,MUL,DIV,XOR,OR,AND,RCL,RCR,SHL,SHR";
     string directives ="DW,DB";
     // need to add lowercase versions
     int curPos = 0;
     for (int i=0; i<tokens.size(); i++) {
         string curToken = tokens[i];
         // if the token is an instruction, encode it to memory using 6 bytes
-        if (noOperand.find(curToken) != string::npos) {
+        if (instructions.find(curToken) != string::npos) {
             for (int j=0; j<6; j++) {
                 memory[curPos] = i;
                 curPos++;
             }
-        }
-        else if (singleOperand.find(curToken) != string::npos) {
-            for (int j=0; j<6; j++) {
-                memory[curPos] = i;
-                curPos++;
-            }
-            continue;
-        }
-        else if (twoOperands.find(curToken) != string::npos) {
-            for (int j=0; j<6; j++) {
-                memory[curPos] = i;
-                curPos++;
-            }
-            continue;
         }
         // if the token is a label encode the memory location it refers to
         else if (curToken.back() == ':') {
@@ -66,7 +50,7 @@ int main() {
             labels[curToken] = curPos;
             continue;
         }
-        // if the token is a directive encode the variable in memory and put it's adress and string value to the variable map
+        // if the token is a directive encode the variable in memory and put it's address and string value to the variable map
         else if (directives.find(curToken) != string::npos) {
             variables[tokens[i - 1]] = make_pair(curPos, tokens[i + 1]);
             if (tokens[i + 1] == "OFFSET") {
@@ -80,5 +64,9 @@ int main() {
                     curPos++;
             }
         }
+    }
+    for (int i=0; i<memory.size(); i++) {
+        cout << memory[i] << " ";
+        if(memory[i] == -1) break;
     }
 }
