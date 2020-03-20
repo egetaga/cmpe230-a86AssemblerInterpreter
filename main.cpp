@@ -3,15 +3,27 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
-
+#include <unordered_set>
 using namespace std;
+
+int ax=0, bx=0, cx=0, dx=0, al=0, ah=0, bl=0, bh=0, cl=0, ch=0, dl=0, dh=0, di=0, sp=0xfffe, si=0, bp=0; //registers
+
+int zf=0, cf=0, af=0, sf=0, df=0; //flags
+
+vector<string> tokens;
+
+vector<int> memory(2<<15, -1);
+// initializes memory and labels
+unordered_map<string, int> labels; // maps from label to memory address
+unordered_map<string, pair<int, string>> variables; // maps from variable name to a pair of it's memory address and string value
+unordered_set<string> generalRegisters= {"ax", "bx", "cx", "dx", "al","ah", "bl","bh","cl","ch","dl","dh"}; //contains ax, bx... al, ah...
+
 
 int main() {
 
     // parses the input program and places the tokens into a vector
     ifstream inFile;
     inFile.open("../test.txt");
-    vector<string> tokens;
     string token;
     if (inFile.is_open()) {
         string line;
@@ -27,10 +39,7 @@ int main() {
                 tokens.push_back(line.substr(prev, string::npos));
         }
     }
-    // initializes memory and labels
-    vector<int> memory(2<<15, -1);
-    unordered_map<string, int> labels; // maps from label to memory address
-    unordered_map<string, pair<int, string>> variables; // maps from variable name to a pair of it's memory address and string value
+
     string instructions = "NOP,NOT,JZ,JNZ,JE,JNE,JA,JAE,JB,JBE,JNAE,JNB,JNBE,JNC,JC,PUSH,POP,INT,MOV,ADD,SUB,MUL,DIV,XOR,OR,AND,RCL,RCR,SHL,SHR";
     string directives ="DW,DB";
     // need to add lowercase versions

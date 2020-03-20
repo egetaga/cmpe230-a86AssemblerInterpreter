@@ -1,0 +1,3 @@
+/home/mafevke/CLionProjects/cmpe230-a86AssemblerInterpreterr/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/mafevke/CLionProjects/cmpe230-a86AssemblerInterpreterr/cmake-build-debug/CMakeFiles/CMPE230.dir
+/home/mafevke/CLionProjects/cmpe230-a86AssemblerInterpreterr/cmake-build-debug/CMakeFiles/edit_cache.dir

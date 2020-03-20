@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/CMPE230.dir/main.cpp.o CMakeFiles/CMPE230.dir/operations.cpp.o  -o CMPE230 
