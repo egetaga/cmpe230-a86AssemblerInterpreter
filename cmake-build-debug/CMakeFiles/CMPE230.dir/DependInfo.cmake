@@ -4,8 +4,8 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/mafevke/CLionProjects/cmpe230-a86AssemblerInterpreterr/main.cpp" "/home/mafevke/CLionProjects/cmpe230-a86AssemblerInterpreterr/cmake-build-debug/CMakeFiles/CMPE230.dir/main.cpp.o"
-  "/home/mafevke/CLionProjects/cmpe230-a86AssemblerInterpreterr/operations.cpp" "/home/mafevke/CLionProjects/cmpe230-a86AssemblerInterpreterr/cmake-build-debug/CMakeFiles/CMPE230.dir/operations.cpp.o"
+  "C:/Users/Tolga/Desktop/cmpe230-a86AssemblerInterpreter-NEW/main.cpp" "C:/Users/Tolga/Desktop/cmpe230-a86AssemblerInterpreter-NEW/cmake-build-debug/CMakeFiles/CMPE230.dir/main.cpp.obj"
+  "C:/Users/Tolga/Desktop/cmpe230-a86AssemblerInterpreter-NEW/operations.cpp" "C:/Users/Tolga/Desktop/cmpe230-a86AssemblerInterpreter-NEW/cmake-build-debug/CMakeFiles/CMPE230.dir/operations.cpp.obj"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
