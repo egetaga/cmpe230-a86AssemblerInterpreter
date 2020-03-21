@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
-
+#include <unordered_set>
 using namespace std;
 
 extern vector<string> tokens;
@@ -17,15 +17,24 @@ extern unordered_set<string> generalRegisters;
 
 // returns true if the operation is successful, returns false otherwise, which means there is a runtime error.
 bool move(string op1, string op2, int num) {
+}
 
+bool decimal(string st, int& a) {
+    if(st.back()=='h') {
+        a= stoi(st, nullptr, 16);
+        return true;
+    }
+    if(st.back()=='b') {
+        a= stoi(st, nullptr, 2);
 
+        return true;
+    }
+    if(st.back()=='d'|| (('0'<=st.back())&&(st.back()<='9'))) {
 
+    a=stoi(st);
+        return true;
+    }
 
-
-
-
-
-
-
-
+    cout<<"The number specification is invalid!";
+    return false;
 }
