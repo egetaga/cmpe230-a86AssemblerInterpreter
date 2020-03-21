@@ -21,6 +21,7 @@ unordered_map<string, pair<int, int>> registers; // maps the name of the registe
 int ZF = 0,AF = 0,CF = 0,SF = 0,OF= 0;
 
 string addressDecoder(string token);
+void mov(string destination, string source);
 bool decimal(string st, int& a);
 
 int main() {
