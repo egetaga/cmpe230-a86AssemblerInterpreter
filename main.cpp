@@ -3,60 +3,110 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
-
+#include <unordered_set>
 using namespace std;
 
 vector<string> tokens;
 vector<int> memory(2<<15, -1);
 // initializes memory and labels
+
 unordered_map<string, int> labels; // maps from label to memory address
 unordered_map<string, pair<int, string>> variables; // maps from variable name to a pair of it's memory address and string value
-string instructions = "NOP,NOT,JZ,JNZ,JE,JNE,JA,JAE,JB,JBE,JNAE,JNB,JNBE,JNC,JC,PUSH,POP,INT,MOV,ADD,SUB,MUL,DIV,XOR,OR,AND,RCL,RCR,SHL,SHR";
-string directives ="DW,DB";
-// need to add lowercase versions
-unordered_map<string, pair<int, int>> registers; // maps the name of the register to a pair of it's value and size in bits
+unordered_map<string, pair<int&, int>> registers; // maps the name of the register to a pair of it's value and size in bits
 
-
+int ax=0, bx=0, cx=0, dx=0, al=0, ah=0, bl=0, bh=0, cl=0, ch=0, dl=0, dh=0, di=0, sp=0xfffe, si=0, bp=0; //registers
 // flags
 int ZF = 0,AF = 0,CF = 0,SF = 0,OF= 0;
+
+unordered_set<string> instructions = {"NOP","NOT","JZ","JNZ","JE","JNE","JA","JAE","JB","JBE","JNAE","JNB","JNBE","JNC","JC","PUSH","POP","INT","MOV","ADD","SUB","MUL"
+                                ,"DIV","XOR","OR","AND","RCL","RCR","SHL","SHR"};
+unordered_set<string> directives ={"DW","DB"};
+
+// need to add lowercase versions
 
 string addressDecoder(string token);
 void mov(string destination, string source);
 bool decimal(string st, int& a);
-
+bool checkSyntax(string& instruction, int& i, vector<string>& tokens);
 int main() {
     // initiate registers and flags
     // 8 bit registers
-    registers["AH"] = make_pair(0,8);
-    registers["AL"] = make_pair(0,8);
-    registers["BH"] = make_pair(0,8);
-    registers["BL"] = make_pair(0,8);
-    registers["CH"] = make_pair(0,8);
-    registers["CL"] = make_pair(0,8);
-    registers["DH"] = make_pair(0,8);
-    registers["DL"] = make_pair(0,8);
+    registers["AH"] = make_pair(ah, 8);
+    registers["AL"] = make_pair(al, 8);
+    registers["BH"] = make_pair(bh, 8);
+    registers["BL"] = make_pair(bl, 8);
+    registers["CH"] = make_pair(ch, 8);
+    registers["CL"] = make_pair(cl, 8);
+    registers["DH"] = make_pair(dh, 8);
+    registers["DL"] = make_pair(dl, 8);
     // 16 bit registers
-    registers["AX"] = make_pair(0,16);
-    registers["BX"] = make_pair(0,16);
-    registers["CX"] = make_pair(0,16);
-    registers["DX"] = make_pair(0,16);
-    registers["DI"] = make_pair(0,16);
-    registers["SP"] = make_pair((int)0xFFFE,16);
-    registers["SI"] = make_pair(0,16);
-    registers["BP"] = make_pair(0,16);
+    registers["AX"] = make_pair(ax, 16);
+    registers["BX"] = make_pair(bx, 16);
+    registers["CX"] = make_pair(cx, 16);
+    registers["DX"] = make_pair(dx, 16);
+    registers["DI"] = make_pair(di, 16);
+    registers["SP"] = make_pair(sp, 16);
+    registers["SI"] = make_pair(si, 16);
+    registers["BP"] = make_pair(bp, 16);
     // parses the input program and places the tokens into a vector
     ifstream inFile;
     inFile.open("../test.txt");
+
+    // if the token is a directive encode the variable in memory and put it's address and string value to the variable map
+    /*       else if (directives.find(curToken) != string::npos) {
+               variables[tokens[i - 1]] = make_pair(curPos, tokens[i + 1]);
+               if (tokens[i + 1] == "OFFSET") {
+                   string offset = tokens[i+1] + " " + tokens[i+2];
+                   variables[tokens[i - 1]] = make_pair(curPos, offset);
+               }
+               memory[curPos] = i;
+               curPos++;
+               if (curToken == "DW") {
+                   memory[curPos] = i;
+                   curPos++;
+               }
+           }
+       }
+       cout << "Memory\n";
+       for (int i=0; i<40; i++) {
+           cout << memory[i] << " ";
+       }
+       cout << "\n";
+       cout << "\n";
+       cout << "Registers\n";
+
+       for (auto it = registers.begin(); it !=registers.end(); it++) {
+           cout << it->first << " " << it->second.first << " " << it->second.second << "\n";
+       }
+
+       cout << "\n";
+       cout << "Variables\n";
+       for (auto it = variables.begin(); it !=variables.end(); it++) {
+           cout << it->first << " " << it->second.first <<" " << it->second.second << "\n";
+       }
+       cout << "\n";
+       cout <<"Labels\n";
+       for (auto it = labels.begin(); it !=labels.end(); it++) {
+           cout << it->first << " " << it->second << "\n";
+       }
+       cout << "\nFlags\n";
+       cout << "ZF = " << ZF << " AF = " << AF <<" CF = "<< CF <<" SF = " << SF << " OF = " << OF;
+    */
+}
+
+
+
+
+bool initializeTokens(ifstream& inFile, vector<string>& tokens) {
     string token;
     if (inFile.is_open()) {
         string line;
         while (getline(inFile, line)) {
             size_t prev = 0, pos;
-            while ((pos = line.find_first_of(" ,", prev)) != string::npos)
-            {
+            while ((pos = line.find_first_of(" ,", prev)) != string::npos) {
                 if (pos > prev)
-                    tokens.push_back(line.substr(prev, pos-prev));
-                prev = pos+1;
+                    tokens.push_back(line.substr(prev, pos - prev));
+                prev = pos + 1;
             }
             if (prev < line.length())
                 tokens.push_back(line.substr(prev, string::npos));
@@ -64,11 +114,13 @@ int main() {
     }
     // loads the program into memory
     int curPos = 0;
-    for (int i=0; i<tokens.size(); i++) {
+    for (int i = 0; i < tokens.size(); i++) {
         string curToken = tokens[i];
-        // if the token is an instruction, encode it to memory using 6 bytes
-        if (instructions.find(curToken) != string::npos) {
-            for (int j=0; j<6; j++) {
+        // if the token is an instruction, encode it to memory using 6 bytes, but first check whether it is syntatically true or not
+        if (instructions.find(curToken) != instructions.end()) {
+            if(!checkSyntax(curToken,i, tokens)) return false;
+
+            for (int j = 0; j < 6; j++) {
                 memory[curPos] = i;
                 curPos++;
             }
@@ -79,96 +131,56 @@ int main() {
             labels[curToken] = curPos;
             continue;
         }
-            // if the token is a directive encode the variable in memory and put it's address and string value to the variable map
-        else if (directives.find(curToken) != string::npos) {
-            variables[tokens[i - 1]] = make_pair(curPos, tokens[i + 1]);
-            if (tokens[i + 1] == "OFFSET") {
-                string offset = tokens[i+1] + " " + tokens[i+2];
-                variables[tokens[i - 1]] = make_pair(curPos, offset);
-            }
-            memory[curPos] = i;
-            curPos++;
-            if (curToken == "DW") {
-                memory[curPos] = i;
-                curPos++;
-            }
-        }
-    }
-    cout << "Memory\n";
-    for (int i=0; i<40; i++) {
-        cout << memory[i] << " ";
-    }
-    cout << "\n";
-    cout << "\n";
-    cout << "Registers\n";
 
-    for (auto it = registers.begin(); it !=registers.end(); it++) {
-        cout << it->first << " " << it->second.first << " " << it->second.second << "\n";
-    }
 
-    cout << "\n";
-    cout << "Variables\n";
-    for (auto it = variables.begin(); it !=variables.end(); it++) {
-        cout << it->first << " " << it->second.first <<" " << it->second.second << "\n";
     }
-    cout << "\n";
-    cout <<"Labels\n";
-    for (auto it = labels.begin(); it !=labels.end(); it++) {
-        cout << it->first << " " << it->second << "\n";
-    }
-    cout << "\nFlags\n";
-    cout << "ZF = " << ZF << " AF = " << AF <<" CF = "<< CF <<" SF = " << SF << " OF = " << OF;
- }
+    //need to add variable parts here...
 
-string addressDecoder(string token) {
-    // register addressing: if operand is the contents of a register return the name of the registers in a string
-    if (registers.find(token) != registers.end()) {
-        return token;
-    }
-    // register indirect: if the operand is the contents of the memory address pointed to by a register, return the token corresponding to that memory address
-    else if (token.front() == '[' && token.back() == ']' && registers.find(token.substr(1,2)) != registers.end()) {
-        return tokens[memory[registers[token.substr(1,2)].first]];
-    }
-    // memory addressing: if the operand is the content of a memory location return the token corresponding to that memory location
-    else if (token.at(1) == '[' && token.back() == ']') {
-        int address;
-        token.pop_back();
-        decimal(token.substr(1), address);
-        return tokens[memory[address]];
-    }
-    // immediate addressing
-    else return token;
-    // stack addressing will be handled implicitly during execution
+
+    return true;
 }
 
-bool decimal(string st, int& a) {
-    if(st.back()=='h') {
-        a= stoi(st, nullptr, 16);
-        return true;
-    }
-    if(st.back()=='b') {
-        a= stoi(st, nullptr, 2);
+bool checkSyntax(string& instruction, int& i, vector<string>& tokens) { //offsets are not considered here, need to improve on those
+    if (instruction == "NOP") return true;
 
-        return true;
-    }
-    if(st.back()=='d'|| (('0'<=st.back())&&(st.back()<='9'))) {
-
-        a=stoi(st);
-        return true;
-    }
-
-    cout<<"The number specification is invalid!";
-    return false;
-}
-
-void mov(string destination, string source) {
-    // from register to register
-    if (registers.find(destination) != registers.end() && registers.find(source) != registers.end()) {
-        if (registers[source].second > registers[destination].second) {
-            // error message and exit here
+    //I assumed, tokens are not "," or sth similar. Controls the tokens with 2 operands
+    if (instruction == "MOV" || instruction == "ADD" || instruction == "AND" || instruction == "CMP" ||
+        instruction == "XOR" || instruction == "SHL" ||
+        instruction == "SHR" || instruction == "RCL" || instruction == "RCR" || instruction == "OR" || instruction =="SUB") {
+        int k = i + 1;
+        int l = i + 2;
+        if (l >= tokens.size()) {
+            cout << "Invalid operand to " << instruction << endl;
+            return false;
         }
-        else {
-            registers[destination] = registers[source];
+        string op1 = tokens[k];
+        string op2 = tokens[l];
+        if ((instructions.find(op1) != instructions.end()) || instructions.find(op2) != instructions.end() ||
+            op1[op1.length() - 1] == ':' || op2[op2.length() - 1] == ':'||tokens[i+1]=="DB"||tokens[i+1]=="DW" ) {
+            cout << "Invalid operand to " << instruction << endl;
+            return false;
         }
+        i += 2;
     }
+    //controls INT specifically
+    if (instruction == "INT") {
+        if (((i + 1) >= tokens.size()) || (tokens[i + 1] != "20h" && tokens[i + 1] != "21h")) {
+            cout << "Invalid operand to " << instruction << endl;
+            return false;
+        }
+        i++;
+    }
+    //controls instructions with one operand
+    if(instruction=="PUSH"||instruction=="POP"||instruction=="NOT"||instruction=="MUL"||instruction=="DIV"||instruction=="JZ"||
+    instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||
+    instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC") {
+
+        if((i+1)>=tokens.size()||instructions.find(tokens[i+1])!=instructions.end()|| tokens[i+1].back()==':'||tokens[i+1]=="DB"||tokens[i+1]=="DW" ) {
+            cout << "Invalid operand to " << instruction << endl;
+            return false;
+        }
+        i++;
+    }
+
+    return true;
 }

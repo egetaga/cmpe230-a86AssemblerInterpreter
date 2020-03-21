@@ -13,10 +13,10 @@ extern vector<int> memory;
 extern unordered_map<string, int> labels; // maps from label to memory address
 extern unordered_map<string, pair<int, string>> variables; // maps from variable name to a pair of it's memory address and string value
 extern unordered_map<string, int&> generalRegisters;
-
+extern unordered_map<string, pair<int, int>> registers;
 // returns true if the operation is successful, returns false otherwise, which means there is a runtime error.
 
-bool decimal1(string st, int& a) {
+bool decimal(string st, int& a) {
     if(st.back()=='h') {
         a= stoi(st, nullptr, 16);
         return true;
@@ -34,4 +34,37 @@ bool decimal1(string st, int& a) {
 
     cout<<"The number specification is invalid!";
     return false;
+}
+
+void mov(string destination, string source) {
+    // from register to register
+    if (registers.find(destination) != registers.end() && registers.find(source) != registers.end()) {
+        if (registers[source].second > registers[destination].second) {
+            // error message and exit here
+        }
+        else {
+            registers[destination] = registers[source];
+        }
+    }
+}
+
+string addressDecoder(string token) {
+    // register addressing: if operand is the contents of a register return the name of the registers in a string
+    if (registers.find(token) != registers.end()) {
+        return token;
+    }
+        // register indirect: if the operand is the contents of the memory address pointed to by a register, return the token corresponding to that memory address
+    else if (token.front() == '[' && token.back() == ']' && registers.find(token.substr(1,2)) != registers.end()) {
+        return tokens[memory[registers[token.substr(1,2)].first]];
+    }
+        // memory addressing: if the operand is the content of a memory location return the token corresponding to that memory location
+    else if (token.at(1) == '[' && token.back() == ']') {
+        int address;
+        token.pop_back();
+        decimal(token.substr(1), address);
+        return tokens[memory[address]];
+    }
+        // immediate addressing
+    else return token;
+    // stack addressing will be handled implicitly during execution
 }
