@@ -16,10 +16,12 @@ vector<int> memory(2<<15, -1);
 // initializes memory and labels
 unordered_map<string, int> labels; // maps from label to memory address
 unordered_map<string, pair<int, string>> variables; // maps from variable name to a pair of it's memory address and string value
-unordered_set<string> generalRegisters= {"ax", "bx", "cx", "dx", "al","ah", "bl","bh","cl","ch","dl","dh"}; //contains ax, bx... al, ah...
-
+unordered_map<string, int&> generalRegisters;
 
 int main() {
+
+    unordered_map<string, int&> registers= { {"ax",ax} , {"bx", bx}, {"cx", cx}, {"dx",dx}, {"al",al},{"ah",ah}, {"bl",bl},{"bh",bh},{"cl",cl},{"ch",ch},{"dl",dl},{"dh",dl}}; //contains ax, bx... al, ah...
+    unordered_map<string, int&> generalRegisters = registers; // bad style
 
     // parses the input program and places the tokens into a vector
     ifstream inFile;
@@ -78,4 +80,13 @@ int main() {
         cout << memory[i] << " ";
         if(memory[i] == -1) break;
     }
+
+
+
+
+
+
+
+
+
 }

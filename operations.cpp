@@ -6,14 +6,13 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
-#include <unordered_set>
 using namespace std;
 
 extern vector<string> tokens;
 extern vector<int> memory;
 extern unordered_map<string, int> labels; // maps from label to memory address
 extern unordered_map<string, pair<int, string>> variables; // maps from variable name to a pair of it's memory address and string value
-extern unordered_set<string> generalRegisters;
+extern unordered_map<string, int&> generalRegisters;
 
 // returns true if the operation is successful, returns false otherwise, which means there is a runtime error.
 bool move(string op1, string op2, int num) {
