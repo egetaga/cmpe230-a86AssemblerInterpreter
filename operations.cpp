@@ -15,10 +15,8 @@ extern unordered_map<string, pair<int, string>> variables; // maps from variable
 extern unordered_map<string, int&> generalRegisters;
 
 // returns true if the operation is successful, returns false otherwise, which means there is a runtime error.
-bool move(string op1, string op2, int num) {
-}
 
-bool decimal(string st, int& a) {
+bool decimal1(string st, int& a) {
     if(st.back()=='h') {
         a= stoi(st, nullptr, 16);
         return true;

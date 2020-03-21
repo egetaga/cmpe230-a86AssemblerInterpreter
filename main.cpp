@@ -21,6 +21,7 @@ unordered_map<string, pair<int, int>> registers; // maps the name of the registe
 int ZF = 0,AF = 0,CF = 0,SF = 0,OF= 0;
 
 string addressDecoder(string token);
+bool decimal(string st, int& a);
 
 int main() {
     // initiate registers and flags
@@ -60,6 +61,7 @@ int main() {
                 tokens.push_back(line.substr(prev, string::npos));
         }
     }
+    // loads the program into memory
     int curPos = 0;
     for (int i=0; i<tokens.size(); i++) {
         string curToken = tokens[i];
@@ -91,8 +93,31 @@ int main() {
             }
         }
     }
+    cout << "Memory\n";
+    for (int i=0; i<40; i++) {
+        cout << memory[i] << " ";
+    }
+    cout << "\n";
+    cout << "\n";
+    cout << "Registers\n";
 
-}
+    for (auto it = registers.begin(); it !=registers.end(); it++) {
+        cout << it->first << " " << it->second.first << " " << it->second.second << "\n";
+    }
+
+    cout << "\n";
+    cout << "Variables\n";
+    for (auto it = variables.begin(); it !=variables.end(); it++) {
+        cout << it->first << " " << it->second.first <<" " << it->second.second << "\n";
+    }
+    cout << "\n";
+    cout <<"Labels\n";
+    for (auto it = labels.begin(); it !=labels.end(); it++) {
+        cout << it->first << " " << it->second << "\n";
+    }
+    cout << "\nFlags\n";
+    cout << "ZF = " << ZF << " AF = " << AF <<" CF = "<< CF <<" SF = " << SF << " OF = " << OF;
+ }
 
 string addressDecoder(string token) {
     // register addressing: if operand is the contents of a register return the name of the registers in a string
@@ -100,9 +125,49 @@ string addressDecoder(string token) {
         return token;
     }
     // register indirect: if the operand is the contents of the memory address pointed to by a register, return the token corresponding to that memory address
-    if (token.front() == '[' && token.back() == ']' && registers.find(token.substr(1,2)) != registers.end()) {
-        return tokens[memory[registers[token]]];
+    else if (token.front() == '[' && token.back() == ']' && registers.find(token.substr(1,2)) != registers.end()) {
+        return tokens[memory[registers[token.substr(1,2)].first]];
     }
     // memory addressing: if the operand is the content of a memory location return the token corresponding to that memory location
-    
+    else if (token.at(1) == '[' && token.back() == ']') {
+        int address;
+        token.pop_back();
+        decimal(token.substr(1), address);
+        return tokens[memory[address]];
+    }
+    // immediate addressing
+    else return token;
+    // stack addressing will be handled implicitly during execution
+}
+
+bool decimal(string st, int& a) {
+    if(st.back()=='h') {
+        a= stoi(st, nullptr, 16);
+        return true;
+    }
+    if(st.back()=='b') {
+        a= stoi(st, nullptr, 2);
+
+        return true;
+    }
+    if(st.back()=='d'|| (('0'<=st.back())&&(st.back()<='9'))) {
+
+        a=stoi(st);
+        return true;
+    }
+
+    cout<<"The number specification is invalid!";
+    return false;
+}
+
+void mov(string destination, string source) {
+    // from register to register
+    if (registers.find(destination) != registers.end() && registers.find(source) != registers.end()) {
+        if (registers[source].second > registers[destination].second) {
+            // error message and exit here
+        }
+        else {
+            registers[destination] = registers[source];
+        }
+    }
 }
