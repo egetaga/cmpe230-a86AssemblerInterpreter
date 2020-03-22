@@ -155,15 +155,49 @@ bool checkSyntax(string& instruction, int& i, vector<string>& tokens) { //offset
         }
         string op1 = tokens[k];
         string op2 = tokens[l];
+
+        // For all instructions except CMP, first operand cannot be in the form offset var1, hence we add that condition as well.
         if ((instructions.find(op1) != instructions.end()) || instructions.find(op2) != instructions.end() ||
-            op1[op1.length() - 1] == ':' || op2[op2.length() - 1] == ':'||tokens[i+1]=="DB"||tokens[i+1]=="DW" ) {
+            op1[op1.length() - 1] == ':' || op2[op2.length() - 1] == ':'||op1=="DB"||op2=="DW"||(instruction!="CMP"&&op1=="OFFSET" )) {
             cout << "Invalid operand to " << instruction << endl;
             return false;
         }
+        // if instruction is cmp, we need to check that condition and increment i by 1, since "offset" takes place as well in tokens
+        if(op1=="OFFSET"&&instruction=="CMP") {
+            op1=op2;
+            l++;
+            if (l >= tokens.size()) {
+                cout << "Invalid operand to " << instruction << endl;
+                return false;
+            }
+            op2=tokens[l];
+            if ((instructions.find(op1) != instructions.end()) || instructions.find(op2) != instructions.end() ||
+                op1[op1.length() - 1] == ':' || op2[op2.length() - 1] == ':'||op1=="DB"||op2=="DW"||(instruction!="CMP"&&op1=="OFFSET" )) {
+                cout << "Invalid operand to " << instruction << endl;
+                return false;
+            }
+            i++;
+        }
+        //check the case when op2==offset. It is possible for all instructions with 2 operands since the second operand may be immediate value, that is, the value returned by offset
+        if(op2=="OFFSET") {
+           l++;
+            if (l >= tokens.size()) {
+                cout << "Invalid operand to " << instruction << endl;
+                return false;
+            }
+            op2=tokens[l];
+            if (instructions.find(op2) != instructions.end() ||op2.back() == ':'||op2=="DW") {
+                cout << "Invalid operand to " << instruction << endl;
+                return false;
+            }
+            i++;
+        }
+
+
         i += 2;
     }
     //controls INT specifically
-    if (instruction == "INT") {
+  else  if (instruction == "INT") {
         if (((i + 1) >= tokens.size()) || (tokens[i + 1] != "20h" && tokens[i + 1] != "21h")) {
             cout << "Invalid operand to " << instruction << endl;
             return false;
@@ -171,7 +205,7 @@ bool checkSyntax(string& instruction, int& i, vector<string>& tokens) { //offset
         i++;
     }
     //controls instructions with one operand
-    if(instruction=="PUSH"||instruction=="POP"||instruction=="NOT"||instruction=="MUL"||instruction=="DIV"||instruction=="JZ"||
+ else  if(instruction=="PUSH"||instruction=="POP"||instruction=="NOT"||instruction=="MUL"||instruction=="DIV"||instruction=="JZ"||
     instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||
     instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC") {
 
@@ -179,8 +213,17 @@ bool checkSyntax(string& instruction, int& i, vector<string>& tokens) { //offset
             cout << "Invalid operand to " << instruction << endl;
             return false;
         }
+        // controls the case when -instruction- -offset- -name-
+        if((instruction=="PUSH"||instruction=="POP"||instruction=="NOT"||instruction=="MUL"||instruction=="DIV")&&tokens[i+1]=="OFFSET") {
+            if((i+2)>=tokens.size()||instructions.find(tokens[i+2])!=instructions.end()|| tokens[i+2].back()==':'||tokens[i+2]=="DB"||tokens[i+2]=="DW") {
+                cout << "Invalid operand to " << instruction << endl;
+                return false;
+            }
+            i++;
+        }
         i++;
     }
-
+// What have we done here? We simply controlled the basic rules regarding the syntax of the assembly code. Any other rule needing the preprocessed code should be controlled in
+// runtime
     return true;
 }
