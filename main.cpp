@@ -11,7 +11,7 @@ vector<int> memory(2<<15, -1);
 // initializes memory and labels
 
 unordered_map<string, int> labels; // maps from label to memory address
-unordered_map<string, pair<int, string>> variables; // maps from variable name to a pair of it's memory address and string value
+unordered_map<string, int> variables; // maps from variable name to it's address
 unordered_map<string, pair<int&, int>> registers; // maps the name of the register to a pair of it's value and size in bits
 
 int ax=0, bx=0, cx=0, dx=0, al=0, ah=0, bl=0, bh=0, cl=0, ch=0, dl=0, dh=0, di=0, sp=0xfffe, si=0, bp=0; //registers
@@ -119,20 +119,63 @@ bool initializeTokens(ifstream& inFile, vector<string>& tokens) {
         // if the token is an instruction, encode it to memory using 6 bytes, but first check whether it is syntatically true or not
         if (instructions.find(curToken) != instructions.end()) {
             if(!checkSyntax(curToken,i, tokens)) return false;
-
-            for (int j = 0; j < 6; j++) {
-                memory[curPos] = i;
-                curPos++;
-            }
+                for (int j = 0; j < 6; j++) {
+                        memory[curPos++] = i;
+                        curPos++;
+                    }
         }
-            // if the token is a label encode the memory location it refers to
+        // if the token is a label encode the memory location it refers to
         else if (curToken.back() == ':') {
             curToken.pop_back();
             labels[curToken] = curPos;
             continue;
         }
-
-
+        else if (directives.find(curToken) != directives.end()) {
+            string varName= "NULL";
+            if (i>0) varName = tokens[i-1];
+            string varValue = tokens[i+1];
+            int value; // turn to unsigned int
+            variables[varName] = curPos;
+            if (decimal(varValue, value)) {
+                if (curToken == "DB") {
+                    if (value > 255) {
+                        cout << "Overflow";
+                        return false;
+                    } else {
+                        memory[curPos++] = value;
+                    }
+                }
+                if (curToken == "DW") {
+                    if (value > 65535) {
+                        cout << "Overflow";
+                        return false;
+                    }
+                    else {
+                        memory[curPos++] = value & 0xff;
+                        memory[curPos++] = (value >> 8) & 0xff;
+                    }
+                }
+            }
+            else {
+                value = (int) curToken.front();
+                if (curToken == "DB") {
+                    if (value > 255) {
+                        cout << "Overflow";
+                    } else {
+                        memory[curPos++] = value;
+                    }
+                }
+                if (curToken == "DW") {
+                    if (value > 65535) {
+                        cout << "Overflow";
+                    }
+                    else {
+                        memory[curPos++] = value & 0xff;
+                        memory[curPos++] = (value >> 8) & 0xff;
+                    }
+                }
+            }
+        }
     }
     //need to add variable parts here...
 
