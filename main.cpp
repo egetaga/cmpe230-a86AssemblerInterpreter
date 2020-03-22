@@ -157,7 +157,7 @@ bool initializeTokens(ifstream& inFile, vector<string>& tokens) {
                 }
             }
             else {
-                value = (int) curToken.front();
+                value = (int) curToken.at(1);
                 if (curToken == "DB") {
                     if (value > 255) {
                         cout << "Overflow";

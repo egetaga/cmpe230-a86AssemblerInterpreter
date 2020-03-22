@@ -17,6 +17,7 @@ extern unordered_map<string, pair<int, int>> registers;
 // returns true if the operation is successful, returns false otherwise, which means there is a runtime error.
 
 bool decimal(string st, int& a) {
+    if (st.front() < '0' || st.front() > '9') return false;
     if(st.back()=='h') {
         a= stoi(st, nullptr, 16);
         return true;
