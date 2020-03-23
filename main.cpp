@@ -4,55 +4,56 @@
 #include <fstream>
 #include <unordered_map>
 #include <unordered_set>
+
 using namespace std;
 
-vector<string> tokens;
-vector<int> memory(2<<15, -1);
-// initializes memory and labels
-
-unordered_map<string, int> labels; // maps from label to memory address
-unordered_map<string, pair<int, string>> variables; // maps from variable name to it's address and data type
-unordered_map<string, pair<int&, int>> registers; // maps the name of the register to a pair of it's value and size in int
-
-int ax=0, bx=0, cx=0, dx=0, al=0, ah=0, bl=0, bh=0, cl=0, ch=0, dl=0, dh=0, di=0, sp=0xfffe, si=0, bp=0; //registers
-// flags
-int ZF = 0,AF = 0,CF = 0,SF = 0,OF= 0;
-
+/* Here we are defining necessary data structures to properly represent the processor*/
+vector<string> tokens; // A vector into which each individual token of the source program is parsed
+vector<int> memory(2<<15, -1); // A vector representing the 64KB memory of HYP86, value -1 means represents an unused byte
+unordered_map<string, int> labels; // A map that links labels appearing in the source program to the memory location they point to
+unordered_map<string, pair<int, string>> variables; // A map that links the names of the variables declared to a pair of their memory address and type
+unordered_map<string, pair<int, int>> registers; // A map that links the names of the registers to a pair of their value and size in integers
+unordered_map<string, bool> flags; // A map that links the names of the flags to their boolean value
 unordered_set<string> instructions = {"NOP","NOT","JZ","JNZ","JE","JNE","JA","JAE","JB","JBE","JNAE","JNB","JNBE","JNC","JC","PUSH","POP","INT","MOV","ADD","SUB","MUL"
-                                ,"DIV","XOR","OR","AND","RCL","RCR","SHL","SHR"};
-unordered_set<string> directives ={"DW","DB"};
+        ,"DIV","XOR","OR","AND","RCL","RCR","SHL","SHR"}; // A set containing the string values of all possible instructions supported by the processor
+unordered_set<string> directives ={"DW","DB"}; // A set containing the string values of all possible directives supported by the processor
 
-// need to add lowercase versions
-int fetchValue(string varName);
-string addressDecoder(string token);
-bool mov(string destination, string source);
-bool decimal(string st, int& a);
-bool checkSyntax(string& instruction, int i);
+/* Function declarations */
 bool initializeTokens(ifstream& inFile);
+bool decimal(string st, int& a);
+int fetchValue(string varName);
+void updateRegisters(string changedRegister);
+bool mov(int op1, int op2);
+
 int main() {
-    // initiate registers and flags
+    /* Here we are initializing our registers and flags */
     // 8 bit registers
-    registers["AH"] = make_pair(ah, 255);
-    registers["AL"] = make_pair(al, 255);
-    registers["BH"] = make_pair(bh, 255);
-    registers["BL"] = make_pair(bl, 255);
-    registers["CH"] = make_pair(ch, 255);
-    registers["CL"] = make_pair(cl, 255);
-    registers["DH"] = make_pair(dh, 255);
-    registers["DL"] = make_pair(dl, 255);
+    registers["AH"] = make_pair(0, 255);
+    registers["AL"] = make_pair(0, 255);
+    registers["BH"] = make_pair(0, 255);
+    registers["BL"] = make_pair(0, 255);
+    registers["CH"] = make_pair(0, 255);
+    registers["CL"] = make_pair(0, 255);
+    registers["DH"] = make_pair(0, 255);
+    registers["DL"] = make_pair(0, 255);
     // 16 bit registers
-    registers["AX"] = make_pair(ax, 65535);
-    registers["BX"] = make_pair(bx, 65535);
-    registers["CX"] = make_pair(cx, 65535);
-    registers["DX"] = make_pair(dx, 65535);
-    registers["DI"] = make_pair(di, 65535);
-    registers["SP"] = make_pair(sp, 65535);
-    registers["SI"] = make_pair(si, 65535);
-    registers["BP"] = make_pair(bp, 65535);
-    // parses the input program and places the tokens into a vector
+    registers["AX"] = make_pair(0, 65535);
+    registers["BX"] = make_pair(0, 65535);
+    registers["CX"] = make_pair(0, 65535);
+    registers["DX"] = make_pair(0, 65535);
+    registers["DI"] = make_pair(0, 65535);
+    registers["SP"] = make_pair(0xFFFE, 65535);
+    registers["SI"] = make_pair(0, 65535);
+    registers["BP"] = make_pair(0, 65535);
+    // flags
+    flags["ZF"] = 0; flags["AF"] = 0; flags["CF"] = 0; flags["SF"] = 0; flags["0F"] = 0;
+
+    /* Following code parses the input program and loads it into memory using the initializeTokens function */
     ifstream inFile;
     inFile.open("../test.txt");
     initializeTokens(inFile);
+
+    /* Following code prints out the state of the processor to the standard output */
     cout << "Memory\n";
     for (int i=0; i<40; i++) {
         cout << memory[i] << " ";
@@ -74,14 +75,12 @@ int main() {
         cout << it->first << " " << it->second << "\n";
     }
     cout << "\nFlags\n";
-    cout << "ZF = " << ZF << " AF = " << AF <<" CF = "<< CF <<" SF = " << SF << " OF = " << OF;
-    cout << fetchValue("MYVAR");
+    cout << "ZF = " << flags["ZF"] << " AF = " << flags["AF"]<<" CF = "<< flags["CF"] <<" SF = " << flags["SF"] << " OF = " << flags["OF"];
+
 }
 
-
-
-
-bool initializeTokens(ifstream& inFile) {
+bool initializeTokens(ifstream& inFile) { // Function to read the input program, write the tokens to the tokens vector and initialize memory
+    // reads every token into the tokens vector
     string token;
     if (inFile.is_open()) {
         string line;
@@ -90,12 +89,10 @@ bool initializeTokens(ifstream& inFile) {
             while ((pos = line.find_first_of(" ,", prev)) != string::npos) {
                 if (pos > prev)
                     tokens.push_back(line.substr(prev, pos - prev));
-                    tokensProcessed.push_back(false);
                 prev = pos + 1;
             }
             if (prev < line.length())
                 tokens.push_back(line.substr(prev, string::npos));
-                tokensProcessed.push_back(false);
         }
     }
     // loads the program into memory
@@ -103,24 +100,23 @@ bool initializeTokens(ifstream& inFile) {
     for (int i = 0; i < tokens.size(); i++) {
         string curToken = tokens[i];
         // if the token is an instruction, encode it to memory using 6 bytes, but first check whether it is syntatically true or not
-        if (instructions.find(curToken) != instructions.end()) {
-            if(!checkSyntax(curToken,i)) return false;
+        if (instructions.find(curToken) != instructions.end()) { ;
             for (int j = 0; j < 6; j++) {
                 memory[curPos] = i;
                 curPos++;
             }
         }
-        // if the token is a label encode the memory location it refers to
+            // if the token is a label encode the memory location it refers to
         else if (curToken.back() == ':') {
             curToken.pop_back();
             labels[curToken] = curPos;
             continue;
         }
+            // if the token is a directive initialize the variable with proper type
         else if (directives.find(curToken) != directives.end()) {
-            string varName= "NULL";
-            if (i>0) varName = tokens[i-1];
-            string varValue = tokens[i+1];
-            int value; // turn to unsigned int
+            string varName = tokens[i - 1];
+            string varValue = tokens[i + 1];
+            int value;
             variables[varName] = make_pair(curPos, curToken);
             if (decimal(varValue, value)) {
                 if (curToken == "DB") {
@@ -135,25 +131,20 @@ bool initializeTokens(ifstream& inFile) {
                     if (value > 65535) {
                         cout << "Overflow";
                         return false;
-                    }
-                    else {
+                    } else {
                         memory[curPos++] = value & 0xff;
                         memory[curPos++] = (value >> 8) & 0xff;
                     }
                 }
             }
             else {
-                value = (int) curToken.at(1);
+                value = varValue.at(1);
                 if (curToken == "DB") {
-                    if (value > 255) {
-                        cout << "Overflow";
-                    } else {
-                        memory[curPos++] = value;
-                    }
+                    memory[curPos++] = value;
                 }
-                if (curToken == "DW") {
+                else if (curToken == "DW") {
                     if (value > 65535) {
-                        cout << "Overflow";
+                        return false;
                     }
                     else {
                         memory[curPos++] = value & 0xff;
@@ -163,12 +154,229 @@ bool initializeTokens(ifstream& inFile) {
             }
         }
     }
-    //need to add variable parts here...
-
-
     return true;
 }
 
+
+bool decimal(string st, int& a) {
+    if (st.front() < '0' || st.front() > '9') return false;
+    if(st.back()=='h') {
+        a= stoi(st, nullptr, 16);
+        return true;
+    }
+    if(st.back()=='b') {
+        a= stoi(st, nullptr, 2);
+
+        return true;
+    }
+    if(st.back()=='d'|| (('0'<=st.back())&&(st.back()<='9'))) {
+
+        a=stoi(st);
+        return true;
+    }
+
+    cout<<"The number specification is invalid!";
+    return false;
+}
+
+int fetchValue(string varName) {
+    int address = variables[varName].first;
+    if (variables[varName].second == "DB") {
+        return memory[address];
+    }
+    else {
+        int value = memory[address];
+        value += memory[address+1]<<8;
+        return value;
+    }
+}
+
+void updateRegisters(string changedRegister) {
+    if (changedRegister == "AX") {
+        registers["AL"].first = registers["AX"].first & 0xff;
+        registers["AH"].first = (registers["AX"].first >> 8) & 0xff;
+    }
+    else if (changedRegister == "BX") {
+        registers["BL"].first = registers["BX"].first & 0xff;
+        registers["BH"].first = (registers["BX"].first >> 8) & 0xff;
+    }
+    else if (changedRegister == "CX") {
+        registers["CL"].first = registers["CX"].first & 0xff;
+        registers["CH"].first = (registers["CX"].first >> 8) & 0xff;
+    }
+    else if (changedRegister == "DX") {
+        registers["DL"].first = registers["DX"].first & 0xff;
+        registers["DH"].first = (registers["DX"].first >> 8) & 0xff;
+    }
+    else {
+        registers["AX"].first = registers["AL"].first + registers["AH"].first<<8;
+        registers["BX"].first = registers["AL"].first + registers["AH"].first<<8;
+        registers["CX"].first = registers["AL"].first + registers["AH"].first<<8;
+        registers["DX"].first = registers["AL"].first + registers["AH"].first<<8;
+    }
+}
+
+bool mov(int op1, int op2) {
+    string destination = tokens[op1];
+    string source = tokens[op2];
+    // cases where destination is a register
+    if (registers.find(destination) != registers.end()) {
+        // case where source is an immediate value
+        int value;
+        if (decimal(source, value)) {
+            if (registers[destination].second < value) {
+                cout << "Overflow";
+                return false;
+            }
+            else {
+                registers[destination].first = value;
+            }
+        }
+        else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
+            registers[destination].first = source.at(1);
+        }
+        else if (source == "OFFSET") {
+            value = variables[tokens[op2+1]].first;
+            if (registers[destination].second < value) {
+                cout << "Overflow";
+                return false;
+            }
+            else {
+                registers[destination].first = value;
+            }
+        }
+        // case where source is the contents of another register
+        else if (registers.find(source) != registers.end()) {
+            if (registers[destination].second < registers[source].second) {
+                cout << "Overflow";
+                return false;
+            }
+            else {
+                registers[destination].first = registers[source].first;
+            }
+        }
+        // case where the source is the contents of a memory offset
+        else if (source.at(1) == '[' && source.back() == ']') {
+            char type = source.front();
+            if (type == 'b' || type == 'B') {
+                string val = source.substr(2, source.length()-3);
+                int value;
+                if (decimal(val, value)) {
+                    registers[destination].first = memory[value];
+                }
+                else {
+                    cout << "Incorrect memory address";
+                    return false;
+                }
+            }
+            if (type == 'w' || type == 'W') {
+                string val = source.substr(2, source.length()-3);
+                int value;
+                if (decimal(val, value)) {
+                    if (registers[destination].second == 255) {
+                        cout << "Overflow";
+                        return false;
+                    }
+                    else {
+                        registers[destination].first = memory[value];
+                    }
+                }
+                else {
+                    cout << "Incorrect memory address";
+                    return false;
+                }
+            }
+        }
+        // case where the source is the contents of a memory offset pointed by a register
+        else if (source.at(0) == '[' && source.at(3) == ']') {
+            string registerName = source.substr(1,2);
+            if (registers.find(registerName) != registers.end()) {
+                registers[destination].first = memory[registers[registerName].first];
+            }
+            else {
+                cout << "Incorrect register name";
+                return false;
+            }
+        }
+        else {
+            cout << "Incorrect operand for MOV operation";
+            return false;
+        }
+        updateRegisters(destination);
+    }
+    // cases where destination is a memory location
+    if (destination.at(1) == '[' && destination.back() == ']') {
+        string val = destination.substr(2, destination.length()-3);
+        int value;
+        if (!decimal(val, value)) {
+            cout << "Incorrect memory address";
+            return false;
+        }
+        // if source is an immediate value
+        int constant;
+        if (decimal(source, constant)) {
+            if (destination.front() == 'b' || destination.front() == 'B' ) {
+                if (constant > 255) {
+                    cout << "Overflow";
+                    return false;
+                }
+                else {
+                    memory[value] = constant;
+                }
+            }
+            if (destination.front() == 'w' || destination.front() == 'W') {
+                if (constant > 65535) {
+                    cout << "Overflow";
+                    return false;
+                }
+                else {
+                    memory[value] = constant & 0xff;
+                    memory[value+1] = (constant >> 8) & 0xff;
+                }
+            }
+        }
+        else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
+            constant = source.at(1);
+            if (destination.front() == 'b' || destination.front() == 'B' ) {
+                memory[value] = constant;
+            }
+            if (destination.front() == 'w' || destination.front() == 'W') {
+                    memory[value] = constant & 0xff;
+                    memory[value+1] = (constant >> 8) & 0xff;
+            }
+        }
+        // if source is the contents of a register
+        else if (registers.find(source) != registers.end()) {
+            constant = registers[source].first;
+            if (destination.front() == 'b' || destination.front() == 'B' ) {
+                if (constant > 255) {
+                    cout << "Overflow";
+                    return false;
+                }
+                else {
+                    memory[value] = constant;
+                }
+            }
+            if (destination.front() == 'w' || destination.front() == 'W') {
+                if (constant > 65535) {
+                    cout << "Overflow";
+                    return false;
+                }
+                else {
+                    memory[value] = constant & 0xff;
+                    memory[value+1] = (constant >> 8) & 0xff;
+                }
+            }
+        }
+        else {
+            cout << "Incorrect operand for move operation";
+            return false;
+        }
+    } 
+    return true;
+}
+
+/*
 bool checkSyntax(string& instruction, int i) { //offsets are not considered here, need to improve on those
     if (instruction == "NOP") return true;
 
@@ -257,14 +465,10 @@ bool checkSyntax(string& instruction, int i) { //offsets are not considered here
     return true;
 }
 
-int fetchValue(string varName) {
-    int address = variables[varName].first;
-    if (variables[varName].second == "DB") {
-        return memory[address];
-    }
-    else {
-        int value = memory[address];
-        value += memory[address+1]<<8;
-        return value;
-    }
-}
+
+
+
+
+
+
+*/
