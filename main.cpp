@@ -12,7 +12,7 @@ vector<int> memory(2<<15, -1);
 
 unordered_map<string, int> labels; // maps from label to memory address
 unordered_map<string, pair<int, string>> variables; // maps from variable name to it's address and data type
-unordered_map<string, pair<int, int>> registers; // maps the name of the register to a pair of it's value and size in bits
+unordered_map<string, pair<int&, int>> registers; // maps the name of the register to a pair of it's value and size in int
 
 int ax=0, bx=0, cx=0, dx=0, al=0, ah=0, bl=0, bh=0, cl=0, ch=0, dl=0, dh=0, di=0, sp=0xfffe, si=0, bp=0; //registers
 // flags
@@ -25,30 +25,30 @@ unordered_set<string> directives ={"DW","DB"};
 // need to add lowercase versions
 int fetchValue(string varName);
 string addressDecoder(string token);
-void mov(string destination, string source);
+bool mov(string destination, string source);
 bool decimal(string st, int& a);
 bool checkSyntax(string& instruction, int i);
 bool initializeTokens(ifstream& inFile);
 int main() {
     // initiate registers and flags
     // 8 bit registers
-    registers["AH"] = make_pair(ah, 8);
-    registers["AL"] = make_pair(al, 8);
-    registers["BH"] = make_pair(bh, 8);
-    registers["BL"] = make_pair(bl, 8);
-    registers["CH"] = make_pair(ch, 8);
-    registers["CL"] = make_pair(cl, 8);
-    registers["DH"] = make_pair(dh, 8);
-    registers["DL"] = make_pair(dl, 8);
+    registers["AH"] = make_pair(ah, 255);
+    registers["AL"] = make_pair(al, 255);
+    registers["BH"] = make_pair(bh, 255);
+    registers["BL"] = make_pair(bl, 255);
+    registers["CH"] = make_pair(ch, 255);
+    registers["CL"] = make_pair(cl, 255);
+    registers["DH"] = make_pair(dh, 255);
+    registers["DL"] = make_pair(dl, 255);
     // 16 bit registers
-    registers["AX"] = make_pair(ax, 16);
-    registers["BX"] = make_pair(bx, 16);
-    registers["CX"] = make_pair(cx, 16);
-    registers["DX"] = make_pair(dx, 16);
-    registers["DI"] = make_pair(di, 16);
-    registers["SP"] = make_pair(sp, 16);
-    registers["SI"] = make_pair(si, 16);
-    registers["BP"] = make_pair(bp, 16);
+    registers["AX"] = make_pair(ax, 65535);
+    registers["BX"] = make_pair(bx, 65535);
+    registers["CX"] = make_pair(cx, 65535);
+    registers["DX"] = make_pair(dx, 65535);
+    registers["DI"] = make_pair(di, 65535);
+    registers["SP"] = make_pair(sp, 65535);
+    registers["SI"] = make_pair(si, 65535);
+    registers["BP"] = make_pair(bp, 65535);
     // parses the input program and places the tokens into a vector
     ifstream inFile;
     inFile.open("../test.txt");
@@ -90,10 +90,12 @@ bool initializeTokens(ifstream& inFile) {
             while ((pos = line.find_first_of(" ,", prev)) != string::npos) {
                 if (pos > prev)
                     tokens.push_back(line.substr(prev, pos - prev));
+                    tokensProcessed.push_back(false);
                 prev = pos + 1;
             }
             if (prev < line.length())
                 tokens.push_back(line.substr(prev, string::npos));
+                tokensProcessed.push_back(false);
         }
     }
     // loads the program into memory
