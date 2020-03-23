@@ -11,8 +11,8 @@ vector<int> memory(2<<15, -1);
 // initializes memory and labels
 
 unordered_map<string, int> labels; // maps from label to memory address
-unordered_map<string, int> variables; // maps from variable name to it's address
-unordered_map<string, pair<int&, int>> registers; // maps the name of the register to a pair of it's value and size in bits
+unordered_map<string, pair<int, string>> variables; // maps from variable name to it's address and data type
+unordered_map<string, pair<int, int>> registers; // maps the name of the register to a pair of it's value and size in bits
 
 int ax=0, bx=0, cx=0, dx=0, al=0, ah=0, bl=0, bh=0, cl=0, ch=0, dl=0, dh=0, di=0, sp=0xfffe, si=0, bp=0; //registers
 // flags
@@ -23,11 +23,12 @@ unordered_set<string> instructions = {"NOP","NOT","JZ","JNZ","JE","JNE","JA","JA
 unordered_set<string> directives ={"DW","DB"};
 
 // need to add lowercase versions
-
+int fetchValue(string varName);
 string addressDecoder(string token);
 void mov(string destination, string source);
 bool decimal(string st, int& a);
-bool checkSyntax(string& instruction, int& i, vector<string>& tokens);
+bool checkSyntax(string& instruction, int i);
+bool initializeTokens(ifstream& inFile);
 int main() {
     // initiate registers and flags
     // 8 bit registers
@@ -51,53 +52,36 @@ int main() {
     // parses the input program and places the tokens into a vector
     ifstream inFile;
     inFile.open("../test.txt");
-
-    // if the token is a directive encode the variable in memory and put it's address and string value to the variable map
-    /*       else if (directives.find(curToken) != string::npos) {
-               variables[tokens[i - 1]] = make_pair(curPos, tokens[i + 1]);
-               if (tokens[i + 1] == "OFFSET") {
-                   string offset = tokens[i+1] + " " + tokens[i+2];
-                   variables[tokens[i - 1]] = make_pair(curPos, offset);
-               }
-               memory[curPos] = i;
-               curPos++;
-               if (curToken == "DW") {
-                   memory[curPos] = i;
-                   curPos++;
-               }
-           }
-       }
-       cout << "Memory\n";
-       for (int i=0; i<40; i++) {
-           cout << memory[i] << " ";
-       }
-       cout << "\n";
-       cout << "\n";
-       cout << "Registers\n";
-
-       for (auto it = registers.begin(); it !=registers.end(); it++) {
-           cout << it->first << " " << it->second.first << " " << it->second.second << "\n";
-       }
-
-       cout << "\n";
-       cout << "Variables\n";
-       for (auto it = variables.begin(); it !=variables.end(); it++) {
-           cout << it->first << " " << it->second.first <<" " << it->second.second << "\n";
-       }
-       cout << "\n";
-       cout <<"Labels\n";
-       for (auto it = labels.begin(); it !=labels.end(); it++) {
-           cout << it->first << " " << it->second << "\n";
-       }
-       cout << "\nFlags\n";
-       cout << "ZF = " << ZF << " AF = " << AF <<" CF = "<< CF <<" SF = " << SF << " OF = " << OF;
-    */
+    initializeTokens(inFile);
+    cout << "Memory\n";
+    for (int i=0; i<40; i++) {
+        cout << memory[i] << " ";
+    }
+    cout << "\n";
+    cout << "\n";
+    cout << "Registers\n";
+    for (auto it = registers.begin(); it !=registers.end(); it++) {
+        cout << it->first << " " << it->second.first << " " << it->second.second << "\n";
+    }
+    cout << "\n";
+    cout << "Variables\n";
+    for (auto it = variables.cbegin(); it !=variables.cend(); it++) {
+        cout << it->first << " " << it->second.first << " " << it->second.second <<  "\n";
+    }
+    cout << "\n";
+    cout <<"Labels\n";
+    for (auto it = labels.begin(); it !=labels.end(); it++) {
+        cout << it->first << " " << it->second << "\n";
+    }
+    cout << "\nFlags\n";
+    cout << "ZF = " << ZF << " AF = " << AF <<" CF = "<< CF <<" SF = " << SF << " OF = " << OF;
+    cout << fetchValue("MYVAR");
 }
 
 
 
 
-bool initializeTokens(ifstream& inFile, vector<string>& tokens) {
+bool initializeTokens(ifstream& inFile) {
     string token;
     if (inFile.is_open()) {
         string line;
@@ -118,11 +102,11 @@ bool initializeTokens(ifstream& inFile, vector<string>& tokens) {
         string curToken = tokens[i];
         // if the token is an instruction, encode it to memory using 6 bytes, but first check whether it is syntatically true or not
         if (instructions.find(curToken) != instructions.end()) {
-            if(!checkSyntax(curToken,i, tokens)) return false;
-                for (int j = 0; j < 6; j++) {
-                        memory[curPos++] = i;
-                        curPos++;
-                    }
+            if(!checkSyntax(curToken,i)) return false;
+            for (int j = 0; j < 6; j++) {
+                memory[curPos] = i;
+                curPos++;
+            }
         }
         // if the token is a label encode the memory location it refers to
         else if (curToken.back() == ':') {
@@ -135,7 +119,7 @@ bool initializeTokens(ifstream& inFile, vector<string>& tokens) {
             if (i>0) varName = tokens[i-1];
             string varValue = tokens[i+1];
             int value; // turn to unsigned int
-            variables[varName] = curPos;
+            variables[varName] = make_pair(curPos, curToken);
             if (decimal(varValue, value)) {
                 if (curToken == "DB") {
                     if (value > 255) {
@@ -183,7 +167,7 @@ bool initializeTokens(ifstream& inFile, vector<string>& tokens) {
     return true;
 }
 
-bool checkSyntax(string& instruction, int& i, vector<string>& tokens) { //offsets are not considered here, need to improve on those
+bool checkSyntax(string& instruction, int i) { //offsets are not considered here, need to improve on those
     if (instruction == "NOP") return true;
 
     //I assumed, tokens are not "," or sth similar. Controls the tokens with 2 operands
@@ -269,4 +253,16 @@ bool checkSyntax(string& instruction, int& i, vector<string>& tokens) { //offset
 // What have we done here? We simply controlled the basic rules regarding the syntax of the assembly code. Any other rule needing the preprocessed code should be controlled in
 // runtime
     return true;
+}
+
+int fetchValue(string varName) {
+    int address = variables[varName].first;
+    if (variables[varName].second == "DB") {
+        return memory[address];
+    }
+    else {
+        int value = memory[address];
+        value += memory[address+1]<<8;
+        return value;
+    }
 }
