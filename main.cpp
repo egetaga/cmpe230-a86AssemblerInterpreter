@@ -53,6 +53,8 @@ int main() {
     inFile.open("../test.txt");
     initializeTokens(inFile);
 
+    mov(1,2);
+
     /* Following code prints out the state of the processor to the standard output */
     cout << "Memory\n";
     for (int i=0; i<40; i++) {
@@ -112,7 +114,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
             labels[curToken] = curPos;
             continue;
         }
-            // if the token is a directive initialize the variable with proper type
+        // if the token is a directive initialize the variable with proper type
         else if (directives.find(curToken) != directives.end()) {
             string varName = tokens[i - 1];
             string varValue = tokens[i + 1];
@@ -288,7 +290,7 @@ bool mov(int op1, int op2) {
             }
         }
         // case where the source is the contents of a memory offset pointed by a register
-        else if (source.at(0) == '[' && source.at(3) == ']') {
+        else if (source.length() == 3 && source.at(0) == '[' && source.at(3) == ']') {
             string registerName = source.substr(1,2);
             if (registers.find(registerName) != registers.end()) {
                 registers[destination].first = memory[registers[registerName].first];
