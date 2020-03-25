@@ -48,6 +48,8 @@ int main() {
    toUpperCase(b);
    cout<<a<<endl;
    cout<<b<<endl; */
+ int val=-1;
+
     registers["AH"] = make_pair(0, 255);
     registers["AL"] = make_pair(0, 255);
     registers["BH"] = make_pair(0, 255);
@@ -443,7 +445,7 @@ bool mov(int instructionNum) {
 
 bool checkSyntax(string& instruction, int& i) { //offsets are not considered here, need to improve on those
     if (instruction == "NOP") return true;
-
+    int lineNominator=i;
     //I assumed, tokens are not "," or sth similar. Controls the tokens with 2 operands
     if (instruction == "MOV" || instruction == "ADD" || instruction == "AND" || instruction == "CMP" ||
         instruction == "XOR" || instruction == "SHL" ||
@@ -451,56 +453,52 @@ bool checkSyntax(string& instruction, int& i) { //offsets are not considered her
         int k = i + 1;
         int l = i + 2;
         if (l >= tokens.size()) {
-            cout << "Invalid operand to " << instruction << endl;
+            cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
             return false;
         }
         string op1 = tokens[k];
         string op2 = tokens[l];
-
-        // For all instructions except CMP, first operand cannot be in the form offset var1, hence we add that condition as well.
-        if ((instructions.find(op1) != instructions.end()) || instructions.find(op2) != instructions.end() ||
-            op1[op1.length() - 1] == ':' || op2[op2.length() - 1] == ':'||op1=="DB"||op2=="DW"||(instruction!="CMP"&&op1=="OFFSET" )) {
-            cout << "Invalid operand to " << instruction << endl;
+        if(op1=="OFFSET") {
+            cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
             return false;
         }
-        // if instruction is cmp, we need to check that condition and increment i by 1, since "offset" takes place as well in tokens
-        if(op1=="OFFSET"&&instruction=="CMP") {
+        if(op1=="B"||op1=="W") {
             op1=op2;
-            l++;
-            if (l >= tokens.size()) {
-                cout << "Invalid operand to " << instruction << endl;
+            if ((++l) >= tokens.size()) {
+                cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
                 return false;
             }
-            op2=tokens[l];
-            if ((instructions.find(op1) != instructions.end()) || instructions.find(op2) != instructions.end() ||
-                op1[op1.length() - 1] == ':' || op2[op2.length() - 1] == ':'||op1=="DB"||op2=="DW"||(instruction!="CMP"&&op1=="OFFSET" )) {
-                cout << "Invalid operand to " << instruction << endl;
-                return false;
-            }
+            op2= tokens[l];
             i++;
         }
-        //check the case when op2==offset. It is possible for all instructions with 2 operands since the second operand may be immediate value, that is, the value returned by offset
-        if(op2=="OFFSET") {
-           l++;
-            if (l >= tokens.size()) {
-                cout << "Invalid operand to " << instruction << endl;
+        if(op2=="OFFSET"||op2=="B"||op2=="W")  {
+            if ((++l) >= tokens.size()) {
+                cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
                 return false;
             }
-            op2=tokens[l];
-            if (instructions.find(op2) != instructions.end() ||op2.back() == ':'||op2=="DW") {
-                cout << "Invalid operand to " << instruction << endl;
+            op2= tokens[l];
+            i++;
+        }
+        if(op2=="B"||op2=="W")  {
+            if ((++l) >= tokens.size()) {
+                cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
                 return false;
             }
+            op2= tokens[l];
             i++;
         }
 
-
+        if ((instructions.find(op1) != instructions.end()) || instructions.find(op2) != instructions.end() ||
+            op1[op1.length() - 1] == ':' || op2[op2.length() - 1] == ':'||op1=="DB"||op2=="DW"||op1=="OFFSET"||op2=="OFFSET"||op1=="B"||op1=="W") {
+            cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
+            return false;
+        }
         i += 2;
     }
     //controls INT specifically
   else  if (instruction == "INT") {
-        if (((i + 1) >= tokens.size()) || (tokens[i + 1] != "20h" && tokens[i + 1] != "21h")) {
-            cout << "Invalid operand to " << instruction << endl;
+        if (((i + 1) >= tokens.size()) || (tokens[i + 1] != "20H" && tokens[i + 1] != "21H")) {
+            cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
             return false;
         }
         i++;
@@ -511,21 +509,24 @@ bool checkSyntax(string& instruction, int& i) { //offsets are not considered her
     instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC") {
 
         if((i+1)>=tokens.size()||instructions.find(tokens[i+1])!=instructions.end()|| tokens[i+1].back()==':'||tokens[i+1]=="DB"||tokens[i+1]=="DW" ) {
-            cout << "Invalid operand to " << instruction << endl;
+            cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
             return false;
         }
         // controls the case when -instruction- -offset- -name-
         if((instruction=="PUSH"||instruction=="POP"||instruction=="NOT"||instruction=="MUL"||instruction=="DIV")&&tokens[i+1]=="OFFSET") {
             if((i+2)>=tokens.size()||instructions.find(tokens[i+2])!=instructions.end()|| tokens[i+2].back()==':'||tokens[i+2]=="DB"||tokens[i+2]=="DW") {
-                cout << "Invalid operand to " << instruction << endl;
+                cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
                 return false;
             }
             i++;
         }
         i++;
-    }
+ }
 // What have we done here? We simply controlled the basic rules regarding the syntax of the assembly code. Any other rule needing the preprocessed code should be controlled in
 // runtime
+    if((i+1)<=(lineNumber.size()-1) &&(lineNumber[i]==lineNumber[i+1])) {
+        cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
+            return false;}
     return true;
 }
 void toUpperCase(string& token) {
