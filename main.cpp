@@ -23,11 +23,23 @@ bool initializeTokens(ifstream& inFile);
 bool decimal(string st, int& a);
 int fetchValue(string varName);
 void updateRegisters(string changedRegister);
-bool mov(int op1, int op2);
+bool mov(int instructionNum);
+bool checkSyntax(string& instruction, int& i);
+vector<int> lineNumber;
+bool decimal(string st, int& a);
+int a;
 
 int main() {
     /* Here we are initializing our registers and flags */
     // 8 bit registers
+   /* int a= (unsigned short) 3;
+    cout<<a<<endl;
+    cout<<((2<<15) -1)<<endl;
+    cout<< decimal("-1", a)<<endl;
+    cout<<a<<endl;
+    a= (unsigned short) a;
+    cout<<a<< endl;
+    */
     registers["AH"] = make_pair(0, 255);
     registers["AL"] = make_pair(0, 255);
     registers["BH"] = make_pair(0, 255);
@@ -53,10 +65,13 @@ int main() {
     inFile.open("../test.txt");
     initializeTokens(inFile);
 
-    mov(1,2);
+    mov(0);
+    mov(3);
+    mov(6);
+   // mov(9);
 
     /* Following code prints out the state of the processor to the standard output */
-    cout << "Memory\n";
+   cout << "Memory\n";
     for (int i=0; i<40; i++) {
         cout << memory[i] << " ";
     }
@@ -69,7 +84,10 @@ int main() {
     cout << "\n";
     cout << "Variables\n";
     for (auto it = variables.cbegin(); it !=variables.cend(); it++) {
-        cout << it->first << " " << it->second.first << " " << it->second.second <<  "\n";
+        if(it->second.second=="DB")
+        cout << it->first << " " << it->second.first << " " << it->second.second <<" value: "<< memory[it->second.first]<<"\n";
+        if(it->second.second=="DW")
+            cout << it->first << " " << it->second.first << " " << it->second.second <<" value: "<< memory[it->second.first] +memory[it->second.first+1]*256<<"\n";
     }
     cout << "\n";
     cout <<"Labels\n";
@@ -86,15 +104,39 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
     string token;
     if (inFile.is_open()) {
         string line;
+        int lineNum{1};
         while (getline(inFile, line)) {
             size_t prev = 0, pos;
+            bool instructionEncountered= false;
             while ((pos = line.find_first_of(" ,", prev)) != string::npos) {
-                if (pos > prev)
-                    tokens.push_back(line.substr(prev, pos - prev));
+
+                if (pos > prev) {
+                    //add token Upper Case converter
+                  string tokenFounded= line.substr(prev, pos - prev);
+                    if(instructions.find(tokenFounded)!=instructions.end()) {
+                        if(!instructionEncountered) { instructionEncountered=true; }
+                        else {cout<<"Multiple instructions on line "<<lineNum<<endl;
+                            return false;
+                        }
+                    }
+                    tokens.push_back(tokenFounded);
+                    lineNumber.push_back(lineNum); }
                 prev = pos + 1;
             }
-            if (prev < line.length())
-                tokens.push_back(line.substr(prev, string::npos));
+            if (prev < line.length()) {
+                //add token Upper Case converter
+                string tokenFounded= line.substr(prev, string::npos);
+                if(instructions.find(tokenFounded)!=instructions.end()) {
+                    if(!instructionEncountered) {
+                        instructionEncountered=true; }
+                    else {cout<<"Multiple instructions on line "<<lineNum<<endl;
+                    return false;
+                    }
+                }
+                lineNumber.push_back(lineNum);
+                tokens.push_back(tokenFounded);
+            }
+            lineNum++;
         }
     }
     // loads the program into memory
@@ -102,9 +144,11 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
     for (int i = 0; i < tokens.size(); i++) {
         string curToken = tokens[i];
         // if the token is an instruction, encode it to memory using 6 bytes, but first check whether it is syntatically true or not
-        if (instructions.find(curToken) != instructions.end()) { ;
+        if (instructions.find(curToken) != instructions.end()) {
+            int posInTokens= i;
+            if(!checkSyntax(curToken, i)) return false;
             for (int j = 0; j < 6; j++) {
-                memory[curPos] = i;
+                memory[curPos] = posInTokens;
                 curPos++;
             }
         }
@@ -140,7 +184,9 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                 }
             }
             else {
-                value = varValue.at(1);
+             int value;
+              if(!decimal(varValue, value)) return false;
+              value= (unsigned short) value;
                 if (curToken == "DB") {
                     memory[curPos++] = value;
                 }
@@ -161,19 +207,19 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
 
 
 bool decimal(string st, int& a) {
-    if (st.front() < '0' || st.front() > '9') return false;
+    if ((st.front()!='-'&&(st.front() < '0' || st.front() > '9'))||(st.front()=='-'&&(st.at(1)<'0'||st.at(1)>'9'))) return false;
     if(st.back()=='h') {
         a= stoi(st, nullptr, 16);
         return true;
     }
     if(st.back()=='b') {
-        a= stoi(st, nullptr, 2);
+        a=  stoi(st, nullptr, 2);
 
         return true;
     }
     if(st.back()=='d'|| (('0'<=st.back())&&(st.back()<='9'))) {
 
-        a=stoi(st);
+        a=  stoi(st);
         return true;
     }
 
@@ -211,14 +257,16 @@ void updateRegisters(string changedRegister) {
         registers["DH"].first = (registers["DX"].first >> 8) & 0xff;
     }
     else {
-        registers["AX"].first = registers["AL"].first + registers["AH"].first<<8;
-        registers["BX"].first = registers["AL"].first + registers["AH"].first<<8;
-        registers["CX"].first = registers["AL"].first + registers["AH"].first<<8;
-        registers["DX"].first = registers["AL"].first + registers["AH"].first<<8;
+        registers["AX"].first = registers["AL"].first + registers["AH"].first*256;
+        registers["BX"].first = registers["BL"].first + registers["BH"].first*256;
+        registers["CX"].first = registers["CL"].first + registers["CH"].first*256;
+        registers["DX"].first = registers["DL"].first + registers["DH"].first*256;
     }
 }
 
-bool mov(int op1, int op2) {
+bool mov(int instructionNum) {
+    int op1= instructionNum+1;
+    int op2= instructionNum+2;
     string destination = tokens[op1];
     string source = tokens[op2];
     // cases where destination is a register
@@ -378,8 +426,8 @@ bool mov(int op1, int op2) {
     return true;
 }
 
-/*
-bool checkSyntax(string& instruction, int i) { //offsets are not considered here, need to improve on those
+
+bool checkSyntax(string& instruction, int& i) { //offsets are not considered here, need to improve on those
     if (instruction == "NOP") return true;
 
     //I assumed, tokens are not "," or sth similar. Controls the tokens with 2 operands
@@ -467,10 +515,3 @@ bool checkSyntax(string& instruction, int i) { //offsets are not considered here
     return true;
 }
 
-
-
-
-
-
-
-*/
