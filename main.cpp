@@ -274,6 +274,11 @@ bool mov(int instructionNum) {
         // case where source is an immediate value
         int value;
         if (decimal(source, value)) {
+            if(value<0) {
+                if(value< -registers[destination].second) {cout<<"Overflow"<<endl;
+                return false; }
+                value+= (registers[destination].second+1);
+            }
             if (registers[destination].second < value) {
                 cout << "Overflow";
                 return false;
