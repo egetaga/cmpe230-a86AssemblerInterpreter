@@ -4,6 +4,8 @@
 #include <fstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <cctype>
+
 
 using namespace std;
 
@@ -28,7 +30,7 @@ bool checkSyntax(string& instruction, int& i);
 vector<int> lineNumber;
 bool decimal(string st, int& a);
 int a;
-
+void toUpperCase(string& token);
 int main() {
     /* Here we are initializing our registers and flags */
     // 8 bit registers
@@ -40,6 +42,12 @@ int main() {
     a= (unsigned short) a;
     cout<<a<< endl;
     */
+ /*  string a= "123'Bd'jdkf12JDJNKlLo123";
+   string b= "\"a\"";
+   toUpperCase(a);
+   toUpperCase(b);
+   cout<<a<<endl;
+   cout<<b<<endl; */
     registers["AH"] = make_pair(0, 255);
     registers["AL"] = make_pair(0, 255);
     registers["BH"] = make_pair(0, 255);
@@ -58,20 +66,19 @@ int main() {
     registers["SI"] = make_pair(0, 65535);
     registers["BP"] = make_pair(0, 65535);
     // flags
-    flags["ZF"] = 0; flags["AF"] = 0; flags["CF"] = 0; flags["SF"] = 0; flags["0F"] = 0;
+/*    flags["ZF"] = 0; flags["AF"] = 0; flags["CF"] = 0; flags["SF"] = 0; flags["0F"] = 0;
 
     /* Following code parses the input program and loads it into memory using the initializeTokens function */
     ifstream inFile;
     inFile.open("../test.txt");
     initializeTokens(inFile);
 
-    mov(0);
-    mov(3);
-    mov(6);
-   // mov(9);
+    for(auto iter= tokens.begin(); iter!=tokens.end(); iter++) {
+        cout<<*iter<<endl;
+    }
 
-    /* Following code prints out the state of the processor to the standard output */
-   cout << "Memory\n";
+  //   Following code prints out the state of the processor to the standard output
+  /* cout << "Memory\n";
     for (int i=0; i<40; i++) {
         cout << memory[i] << " ";
     }
@@ -96,7 +103,7 @@ int main() {
     }
     cout << "\nFlags\n";
     cout << "ZF = " << flags["ZF"] << " AF = " << flags["AF"]<<" CF = "<< flags["CF"] <<" SF = " << flags["SF"] << " OF = " << flags["OF"];
-
+*/
 }
 
 bool initializeTokens(ifstream& inFile) { // Function to read the input program, write the tokens to the tokens vector and initialize memory
@@ -113,6 +120,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                 if (pos > prev) {
                     //add token Upper Case converter
                   string tokenFounded= line.substr(prev, pos - prev);
+                  toUpperCase(tokenFounded);
                     if(instructions.find(tokenFounded)!=instructions.end()) {
                         if(!instructionEncountered) { instructionEncountered=true; }
                         else {cout<<"Multiple instructions on line "<<lineNum<<endl;
@@ -126,6 +134,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
             if (prev < line.length()) {
                 //add token Upper Case converter
                 string tokenFounded= line.substr(prev, string::npos);
+                toUpperCase(tokenFounded);
                 if(instructions.find(tokenFounded)!=instructions.end()) {
                     if(!instructionEncountered) {
                         instructionEncountered=true; }
@@ -234,7 +243,7 @@ int fetchValue(string varName) {
     }
     else {
         int value = memory[address];
-        value += memory[address+1]<<8;
+        value += memory[address+1]*256;  //may be the source of an error
         return value;
     }
 }
@@ -519,4 +528,7 @@ bool checkSyntax(string& instruction, int& i) { //offsets are not considered her
 // runtime
     return true;
 }
-
+void toUpperCase(string& token) {
+ if(token.size()==3&&((token.at(0)=='"'||token.at(0)=='\'')&&(token.at(2)=='"'||token.at(2)=='\''))) return;
+  for(char & i : token) i=toupper(i);
+}
