@@ -324,7 +324,7 @@ bool mov(int instructionNum) {
         // case where the source is the contents of a memory offset
         else if (source.at(1) == '[' && source.back() == ']') {
             char type = source.front();
-            if (type == 'b' || type == 'B') {
+            if (type == 'B') {
                 string val = source.substr(2, source.length()-3);
                 int value;
                 if (decimal(val, value)) {
@@ -335,7 +335,7 @@ bool mov(int instructionNum) {
                     return false;
                 }
             }
-            if (type == 'w' || type == 'W') {
+            if (type == 'W') {
                 string val = source.substr(2, source.length()-3);
                 int value;
                 if (decimal(val, value)) {
@@ -345,6 +345,7 @@ bool mov(int instructionNum) {
                     }
                     else {
                         registers[destination].first = memory[value];
+                        registers[destination].first += memory[value+1]*256;
                     }
                 }
                 else {
@@ -354,14 +355,41 @@ bool mov(int instructionNum) {
             }
         }
         // case where the source is the contents of a memory offset pointed by a register
-        else if (source.length() == 3 && source.at(0) == '[' && source.at(3) == ']') {
-            string registerName = source.substr(1,2);
-            if (registers.find(registerName) != registers.end()) {
-                registers[destination].first = memory[registers[registerName].first];
+        else if (source.length() == 3 && source.at(1) == '[' && source.at(4) == ']') {
+            string registerName = source.substr(2,2);
+            if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
+                char type = source.front();
+                if (type == 'B') {
+                    registers[destination].first = memory[registers[registerName].first];
+                }
+                if (type == 'W') {
+                    if (registers[destination].second == 255) {
+                        cout << "Overflow";
+                        return false;
+                    }
+                    else {
+                        registers[destination].first = memory[registers[registerName].first];
+                        registers[destination].first += memory[registers[registerName].first + 1] * 256;
+                    }
+                }
             }
             else {
-                cout << "Incorrect register name";
+                cout << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
                 return false;
+            }
+        }
+        else if (variables.find(source) != variables.end()) {
+            string type = variables[source].second;
+            if (type == "DB") {
+                registers[destination].first = memory[variables[source].first];
+            }
+            if (type == "DW") {
+                if (registers[destination].second == 255) {
+                    cout << "Overflow";
+                    return false;
+                }
+                registers[destination].first = memory[variables[source].first];
+                registers[destination].first += memory[variables[source].first+1] * 256;
             }
         }
         else {
@@ -374,28 +402,35 @@ bool mov(int instructionNum) {
     if (destination.at(1) == '[' && destination.back() == ']') {
         string val = destination.substr(2, destination.length()-3);
         int value;
+        char type = destination.front();
         if (!decimal(val, value)) {
-            cout << "Incorrect memory address";
-            return false;
+            if (val == "SI" || val == "DI" || val == "BX" || val == "BP") {
+                value = registers[val].first;
+            }
+            else {
+                cout << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+                return false;
+            }
         }
         // if source is an immediate value
         int constant;
         if (decimal(source, constant)) {
-            if (destination.front() == 'b' || destination.front() == 'B' ) {
-                if (constant > 255) {
+            if (type == 'B') {
+                if (constant > 255 || constant < -255) {
                     cout << "Overflow";
                     return false;
                 }
                 else {
-                    memory[value] = constant;
+                    memory[value] = (int)(char)constant;
                 }
             }
-            if (destination.front() == 'w' || destination.front() == 'W') {
-                if (constant > 65535) {
+            if (type == 'W') {
+                if (constant > 65535 || constant < -65535) {
                     cout << "Overflow";
                     return false;
                 }
                 else {
+                    constant = (unsigned short int)constant;
                     memory[value] = constant & 0xff;
                     memory[value+1] = (constant >> 8) & 0xff;
                 }
@@ -403,10 +438,10 @@ bool mov(int instructionNum) {
         }
         else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
             constant = source.at(1);
-            if (destination.front() == 'b' || destination.front() == 'B' ) {
+            if (type == 'B' ) {
                 memory[value] = constant;
             }
-            if (destination.front() == 'w' || destination.front() == 'W') {
+            if (type == 'W') {
                     memory[value] = constant & 0xff;
                     memory[value+1] = (constant >> 8) & 0xff;
             }
@@ -414,7 +449,7 @@ bool mov(int instructionNum) {
         // if source is the contents of a register
         else if (registers.find(source) != registers.end()) {
             constant = registers[source].first;
-            if (destination.front() == 'b' || destination.front() == 'B' ) {
+            if (type == 'B' ) {
                 if (constant > 255) {
                     cout << "Overflow";
                     return false;
@@ -423,15 +458,9 @@ bool mov(int instructionNum) {
                     memory[value] = constant;
                 }
             }
-            if (destination.front() == 'w' || destination.front() == 'W') {
-                if (constant > 65535) {
-                    cout << "Overflow";
-                    return false;
-                }
-                else {
+            if (type == 'W') {
                     memory[value] = constant & 0xff;
                     memory[value+1] = (constant >> 8) & 0xff;
-                }
             }
         }
         else {
