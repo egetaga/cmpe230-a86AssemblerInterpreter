@@ -662,7 +662,7 @@ bool push(int instructionNum) {
         return false;
     }
     else if (operand == "W") {
-        string var = tokens[instructionNum+1];
+        string var = tokens[instructionNum+2];
         if (variables.find(var) == variables.end()) {
             cout << "Invalid mnemonic";
             return false;
@@ -672,6 +672,91 @@ bool push(int instructionNum) {
             memory[registers["SP"].first] = value & 0xff;
             memory[registers["SP"].first-1]= (value >> 8) & 0xff;
             registers["SP"].first-=2;
+            return true;
+        }
+    }
+    cout << "Invalid syntax";
+    return false;
+}
+
+bool pop(int instructionNum) {
+    string operand = tokens[instructionNum+1];
+    // pop into register
+    if (registers.find(operand)!= registers.end()) {
+        if (registers[operand].second == 255) {
+            cout << "Expecting constant";
+            return false;
+        }
+        else {
+            registers[operand].first = memory[registers["SP"].first] << 8;
+            registers[operand].first += (memory[registers["SP"].first+1]);
+            registers["SP"].first+=2;
+            return true;
+        }
+    }
+    // pop into a variable
+    else if (variables.find(operand)!=variables.end()){
+        if (variables[operand].second == "DB") {
+            cout << "Cannot pop intro a byte variable";
+            return false;
+        }
+        else {
+            int address = variables[operand].first;
+            memory[address] = memory[registers["SP"].first+1];
+            memory[address+1] = memory[registers["SP"].first];
+            registers["SP"].first+=2;
+            return true;
+        }
+    }
+    // pop into a memory location
+    else if (operand.at(1) == '[' && operand.back() == ']') {
+        int address;
+        if (operand.front() == 'B') {
+            cout << "Cannot pop into single byte values in A86.";
+            return false;
+        }
+        else {
+            string val = operand.substr(2,operand.length()-3);
+            // number indexing
+            if (decimal(val, address)) {
+                memory[address] = memory[registers["SP"].first+1];
+                memory[address+1] = memory[registers["SP"].first];
+                registers["SP"].first+=2;
+                return true;
+            }
+                // register indexing
+            else if (registers.find(operand.substr(2,operand.length()-3)) != registers.end()) {
+                if (val == "SI" || val == "DI" || val == "BX" || val == "BP") {
+                    address = registers[val].first;
+                    memory[address] = memory[registers["SP"].first+1];
+                    memory[address+1] = memory[registers["SP"].first];
+                    registers["SP"].first+=2;
+                    return true;
+                }
+                else {
+                    cout << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+                    return false;
+                }
+            }
+        }
+    }
+    // pop into a variable with type indicator
+
+    else if (operand == "B") {
+        cout << "Single byte values cannot be pushed onto the stack in A86.";
+        return false;
+    }
+    else if (operand == "W") {
+        string var = tokens[instructionNum+2];
+        if (variables.find(var) == variables.end()) {
+            cout << "Invalid mnemonic";
+            return false;
+        }
+        else {
+            int address = variables[var].first;
+            memory[address] = memory[registers["SP"].first+1];
+            memory[address+1] = memory[registers["SP"].first];
+            registers["SP"].first+=2;
             return true;
         }
     }
