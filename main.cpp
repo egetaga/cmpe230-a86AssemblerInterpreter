@@ -68,7 +68,7 @@ int main() {
     registers["SI"] = make_pair(0, 65535);
     registers["BP"] = make_pair(0, 65535);
     // flags
-/*    flags["ZF"] = 0; flags["AF"] = 0; flags["CF"] = 0; flags["SF"] = 0; flags["0F"] = 0;
+    flags["ZF"] = 0; flags["AF"] = 0; flags["CF"] = 0; flags["SF"] = 0; flags["0F"] = 0;
 
     /* Following code parses the input program and loads it into memory using the initializeTokens function */
     ifstream inFile;
@@ -471,6 +471,9 @@ bool mov(int instructionNum) {
     return true;
 }
 
+bool add(int instructionNum) {
+    
+}
 
 bool checkSyntax(string& instruction, int& i) { //offsets are not considered here, need to improve on those
     if (instruction == "NOP") return true;
@@ -561,4 +564,116 @@ bool checkSyntax(string& instruction, int& i) { //offsets are not considered her
 void toUpperCase(string& token) {
  if(token.size()==3&&((token.at(0)=='"'||token.at(0)=='\'')&&(token.at(2)=='"'||token.at(2)=='\''))) return;
   for(char & i : token) i=toupper(i);
+}
+
+bool push(int instructionNum) {
+    string operand = tokens[instructionNum+1];
+    // push the value of a register
+    if (registers.find(operand)!= registers.end()) {
+        if (registers[operand].second == 255) {
+            cout << "Expecting constant";
+            return false;
+        }
+        else {
+            memory[registers["SP"].first] = registers[operand].first & 0xff;
+            memory[registers["SP"].first-1]= (registers[operand].first >> 8) & 0xff;
+            registers["SP"].first-=2;
+            return true;
+        }
+    }
+    // push an immediate value to the stack;
+    int value;
+    if (decimal(operand, value)) {
+        if (value > 65535) {
+            cout << "Overflow";
+            return false;
+        }
+        memory[registers["SP"].first] = value & 0xff;
+        memory[registers["SP"].first-1]= (value >> 8) & 0xff;
+        registers["SP"].first-=2;
+        return true;
+    }
+    else if (operand.front() == 39 && operand.back() == 39 && operand.length() == 3) {
+        value = operand.at(1);
+        memory[registers["SP"].first] = value & 0xff;
+        memory[registers["SP"].first-1]= (value >> 8) & 0xff;
+        registers["SP"].first-=2;
+        return true;
+    }
+    else if (variables.find(operand) != variables.end()) {
+        if (variables[operand].second == "DB") {
+            cout << "Single byte variables cannot be pushed onto the stack";
+            return false;
+        }
+        value = fetchValue(operand);
+        memory[registers["SP"].first] = value & 0xff;
+        memory[registers["SP"].first-1]= (value >> 8) & 0xff;
+        registers["SP"].first-=2;
+        return true;
+    }
+    // push an address of a variable to the stack
+    else if (operand == "OFFSET") {
+        string varName = tokens[instructionNum+2];
+        if (variables.find(varName) == variables.end()) {
+            cout << "Unknown Mnemonic";
+            return false;
+        }
+        value = variables[varName].first;
+        memory[registers["SP"].first] = value & 0xff;
+        memory[registers["SP"].first-1]= (value >> 8) & 0xff;
+        registers["SP"].first-=2;
+        return true;
+    }
+    // push the value at a memory location to the stack
+    else if (operand.at(1) == '[' && operand.back() == ']') {
+        if (operand.front() == 'B') {
+            cout << "Single byte values cannot be pushed onto the stack in A86.";
+            return false;
+        }
+        else {
+            string val = operand.substr(2,operand.length()-3);
+            // number indexing
+            if (decimal(val, value)) {
+                memory[registers["SP"].first] = memory[value];
+                memory[registers["SP"].first-1] = memory[value+1];
+                registers["SP"].first-=2;
+                return true;
+            }
+            // register indexing
+            else if (registers.find(operand.substr(2,operand.length()-3)) != registers.end()) {
+                if (val == "SI" || val == "DI" || val == "BX" || val == "BP") {
+                    value = registers[val].first;
+                    memory[registers["SP"].first] = memory[value];
+                    memory[registers["SP"].first-1] = memory[value+1];
+                    registers["SP"].first-=2;
+                    return true;
+                }
+                else {
+                    cout << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+                    return false;
+                }
+            }
+        }
+    }
+    // push variable with type indicator to the stack
+    else if (operand == "B") {
+        cout << "Single byte values cannot be pushed onto the stack in A86.";
+        return false;
+    }
+    else if (operand == "W") {
+        string var = tokens[instructionNum+1];
+        if (variables.find(var) == variables.end()) {
+            cout << "Invalid mnemonic";
+            return false;
+        }
+        else {
+            value = fetchValue(var);
+            memory[registers["SP"].first] = value & 0xff;
+            memory[registers["SP"].first-1]= (value >> 8) & 0xff;
+            registers["SP"].first-=2;
+            return true;
+        }
+    }
+    cout << "Invalid syntax";
+    return false;
 }
