@@ -1128,11 +1128,13 @@ int arithmeticUnit(int a, int b, string  operation, char type) {
                 flags["AF"] = 0;
             }
             int parity = 0;
+            int tempresult = result;
             for (int i=0; i<8; i++) {
-                parity+=result%2;
-                result/=2;
+                parity+=tempresult%2;
+                tempresult/=2;
             }
             flags["PF"] = parity%2;
+            return result;
         }
         if (type == 'W') {
             if (a+b > 65535) {
@@ -1167,11 +1169,14 @@ int arithmeticUnit(int a, int b, string  operation, char type) {
                 flags["AF"] = 0;
             }
             int parity = 0;
+            int tempresult = result;
             for (int i=0; i<8; i++) {
-                parity+=result%2;
-                result/=2;
+                parity+=tempresult%2;
+                tempresult/=2;
             }
             flags["PF"] = parity%2;
+            return result;
         }
     }
+    return INT_MIN;
 }
