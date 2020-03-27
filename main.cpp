@@ -802,9 +802,6 @@ bool mov(int instructionNum) {
 }
 
 
-bool add(int instructionNum) {
-    
-}
 
 bool checkSyntax(string& instruction, int& i) { //offsets are not considered here, need to improve on those
     if (instruction == "NOP") return true;
@@ -1092,4 +1089,89 @@ bool pop(int instructionNum) {
     }
     cout << "Invalid syntax";
     return false;
+}
+
+int arithmeticUnit(int a, int b, string  operation, char type) {
+    unsigned int op1 = a;
+    unsigned int op2 = b;
+    if (operation == "ADD") {
+        if (type == 'B') {
+            if (a+b > 255) {
+                flags["CF"] = 1;
+            }
+            else {
+                flags["CF"] = 0;
+            }
+            int leftmostbit_op1 = (1 << 7) & op1;
+            int leftmostbit_op2 = (1 << 7) & op2;
+            int result = (a+b) & 0xFF;
+            int leftmostbit_result = (1<<7) & result;
+            if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
+                flags["OF"] = 1;
+            }
+            else {
+                flags["0F"] = 0;
+            }
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            int lownibble_op1 = op1 & 0xF;
+            int lownibble_op2 = op2 & 0xF;
+            if (lownibble_op1 + lownibble_op2 > 15) {
+                flags["AF"] = 1;
+            }
+            else {
+                flags["AF"] = 0;
+            }
+            int parity = 0;
+            for (int i=0; i<8; i++) {
+                parity+=result%2;
+                result/=2;
+            }
+            flags["PF"] = parity%2;
+        }
+        if (type == 'W') {
+            if (a+b > 65535) {
+                flags["CF"] = 1;
+            }
+            else {
+                flags["CF"] = 0;
+            }
+            int leftmostbit_op1 = (1 << 15) & op1;
+            int leftmostbit_op2 = (1 << 15) & op2;
+            int result = (a+b) & 0xFFFF;
+            int leftmostbit_result = (1<<15) & result;
+            if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
+                flags["OF"] = 1;
+            }
+            else {
+                flags["0F"] = 0;
+            }
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            int lownibble_op1 = op1 & 0xF;
+            int lownibble_op2 = op2 & 0xF;
+            if (lownibble_op1 + lownibble_op2 > 15) {
+                flags["AF"] = 1;
+            }
+            else {
+                flags["AF"] = 0;
+            }
+            int parity = 0;
+            for (int i=0; i<8; i++) {
+                parity+=result%2;
+                result/=2;
+            }
+            flags["PF"] = parity%2;
+        }
+    }
 }

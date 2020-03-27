@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/Tolga/Desktop/cmpe230-a86AssemblerInterpreter-NEW
+# Install script for directory: C:/Users/Tolga/Desktop/cmpe230-a86AssemblerInterpreter-NEW2
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -40,5 +40,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "C:/Users/Tolga/Desktop/cmpe230-a86AssemblerInterpreter-NEW/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "C:/Users/Tolga/Desktop/cmpe230-a86AssemblerInterpreter-NEW2/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
