@@ -27,6 +27,7 @@ int fetchValue(string varName);
 void updateRegisters(string changedRegister);
 bool mov(int instructionNum);
 bool checkSyntax(string& instruction, int& i);
+bool push(int instructionNum)
 vector<int> lineNumber;
 bool decimal(string st, int& a);
 int a;
