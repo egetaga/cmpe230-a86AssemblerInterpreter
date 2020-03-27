@@ -32,6 +32,7 @@ vector<int> lineNumber;
 bool decimal(string st, int& a);
 int a;
 void toUpperCase(string& token);
+int arithmeticUnit(int a, int b, string  operation, char type);
 int main() {
     /* Here we are initializing our registers and flags */
     // 8 bit registers
