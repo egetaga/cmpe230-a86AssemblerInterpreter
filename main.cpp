@@ -1181,3 +1181,570 @@ int arithmeticUnit(int a, int b, string  operation, char type) {
     }
     return INT_MIN;
 }
+
+bool add(int instructionNum) {
+    int op1= instructionNum+1;
+    int op2= instructionNum+2;
+    string destination = tokens[op1];
+    string source = tokens[op2];
+
+    // cases where destination is a register
+    if (registers.find(destination) != registers.end()) {
+        // case where source is an immediate value
+        int val1 = registers[destination].first;
+        char optype;
+        if (registers[destination].second == 255) {
+            optype == 'B';
+        }
+        else {
+            optype = 'W'
+        }
+        int value;
+        if (decimal(source, value)) {
+            if(value<0) {
+                if(value< -registers[destination].second) {cout<<"Overflow"<<endl;
+                    return false; }
+                value+= (registers[destination].second+1);
+            }
+            if (registers[destination].second < value) {
+                cout << "Overflow";
+                return false;
+            }
+            else {
+                registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+            }
+        }
+        else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
+            value = source.at(1);
+            registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+        }
+        else if (source == "OFFSET") {
+            string variable= tokens[op2+1];
+            if(variables.find(variable)==variables.end()) {
+                cout<<"Error at line: "<< lineNumber[instructionNum]<<" Offset must direct to memory address ";
+                return false;
+            }
+            value = variables[variable].first;
+            if (registers[destination].second < value) {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << " Overflow";
+                return false;
+            }
+            else {
+                registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+            }
+        }
+        // case where source is the contents of another register
+        else if (registers.find(source) != registers.end()) {
+            if (registers[destination].second != registers[source].second) {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                return false;
+            }
+            else {
+                value = registers[source].first;
+                registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+            }
+        }
+        // case where the source is the contents of a memory offset pointed by a register
+        else if (source.size() == 5 && source.at(1) == '[' && source.at(4) == ']') {
+            string registerName = source.substr(2,2);
+            if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
+                char type = source.front();
+                if(type!='B'&&type!='W') {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Type can be only B or W";
+                    return false;
+                }
+                if (type == 'B') {
+                    if(registers[destination].second!=255) {
+                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                        return false;
+                    }
+                    value = memory[registers[registerName].first];
+                    registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+                }
+                if (type == 'W') {
+                    if (registers[destination].second == 255) {
+                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                        return false;
+                    }
+                    else {
+                        value = memory[registers[registerName].first]+ memory[registers[registerName].first + 1] * 256 ;
+                        registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+                    }
+                }
+            }
+            else {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+                return false;
+            }
+        }
+        // case where the source is the contents of a memory offset
+        else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
+            char type = source.front();
+            if (type == 'B') {
+                if(registers[destination].second!=255) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                string val = source.substr(2, source.length()-3);
+                int address;
+                if (decimal(val, address)) {
+                    value = memory[address];
+                    registers[destination].first = arithmeticUnit(val1, value, "ADD",optype);
+                }
+                else {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
+                    return false;
+                }
+            }
+            else  if (type == 'W') {
+                string val = source.substr(2, source.length()-3);
+                int address;
+                if (decimal(val, address)) {
+                    if (registers[destination].second == 255) {
+                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                        return false;
+                    }
+                    else {
+                        value = memory[address]+ memory[address+1]*256;
+                        registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+                    }
+                }
+                else {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
+                    return false;
+                }
+            }
+        }
+        //case where the source is a variable
+        else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
+            if(source=="B"||source=="W") {
+                string  newSource= tokens[instructionNum+3];
+                if(variables.find(newSource)==variables.end()) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "after B OR W You should put valid variable ";
+                    return false;
+                }
+                if ((variables[newSource].second=="DB"&&source=="W")||(variables[newSource].second=="DW"&&source=="B")) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
+                    return false;
+                }
+                source=newSource;
+            }
+            string type = variables[source].second;
+            if (type == "DB") {
+                if (registers[destination].second != 255) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                value = memory[variables[source].first];
+                registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+            }
+            if (type == "DW") {
+                if (registers[destination].second == 255) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                value = memory[variables[source].first]+memory[variables[source].first+1] * 256;
+                registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+            }
+        }
+        else {
+            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for MOV operation";
+            return false;
+        }
+        updateRegisters(destination);
+    }
+    // cases where destination is a memory location
+    else if ((destination.size()>1)&& destination.at(1) == '[' && destination.back() == ']') {
+        int val1;
+        char optype;
+        if(destination.size()<4) {
+            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for MOV operation";
+        }
+        string val = destination.substr(2, destination.length()-3);
+        int address;
+        optype = destination.front();
+        if (!decimal(val, address)) {
+            if (val == "SI" || val == "DI" || val == "BX" || val == "BP") {
+                address = registers[val].first;
+            }
+            else {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register/number name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+                return false;
+            }
+        }
+        if ( optype == 'B') {
+            val1 = memory[address];
+        }
+        else {
+            val1 = memory[address] + memory[address+1] * 256;
+        }
+        // if source is an immediate value
+        int value;
+        if (decimal(source, value)) {
+            if (optype == 'B') {
+                if (value > 255 || value < -255) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Overflow";
+                    return false;
+                }
+                else {
+                    value = (int)(char)value;
+                }
+            }
+            if (optype == 'W') {
+                if ( value > 65535 || value < -65535) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Overflow";
+                    return false;
+                }
+                else {
+                    value = (unsigned short int)value;
+                    int result = arithmeticUnit(val1, value, "ADD", optype);
+                    memory[address] = result & 0xff;
+                    memory[address+1] = (result >> 8) & 0xff;
+                }
+            }
+        }
+        else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
+            value = source.at(1);
+            if (optype == 'B' ) {
+                memory[address] = arithmeticUnit(val1, value, "ADD", optype);;
+            }
+            if (optype == 'W') {
+                int result = arithmeticUnit(val1, value, "ADD", optype);
+                memory[address] = result & 0xff;
+                memory[address+1] = (result >> 8) & 0xff;
+            }
+        }
+        // if source is the contents of a register
+        else if (registers.find(source) != registers.end()) {
+            value = registers[source].first;
+            if (optype == 'B' ) {
+                if (value > 255) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Overflow";
+                    return false;
+                }
+                else {
+                    memory[address] =  arithmeticUnit(val1, value, "ADD", optype) ;
+                }
+            }
+            if (optype == 'W') {
+                int result = arithmeticUnit(val1, value, "ADD", optype);
+                memory[address] = result & 0xff;
+                memory[address+1] = (result >> 8) & 0xff;
+            }
+        }
+        // case where the source is the contents of a memory offset pointed by a register
+        else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']') {
+            string registerName = source.substr(2,2);
+            if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
+                char sourceType = source.front();
+                if(sourceType!='B'&&sourceType!='W') {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Type can be only B or W";
+                    return false;
+                }
+                if (sourceType == 'B') {
+                    if(optype!=sourceType) {
+                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                        return false;
+                    }
+                    else{
+                        value = memory[registers[registerName].first];
+                        memory[address] =  arithmeticUnit(val1, value, "ADD", optype) ;
+                    }
+
+                }
+                if (sourceType == 'W') {
+                    if (optype!=sourceType) {
+                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                        return false;
+                    }
+                    else {
+                        value= memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256;
+                        int result = arithmeticUnit(val1, value, "ADD", optype);
+                        memory[address] = result & 0xff;
+                        memory[address+1] = (result >> 8) & 0xff;
+                    }
+                }
+            }
+            else {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+                return false;
+            }
+        }
+        // case where the source is the contents of a memory offset
+        else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
+            char sourceType = source.front();
+            if (sourceType == 'B') {
+                if(optype!=sourceType) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                string stIndex = source.substr(2, source.length()-3);
+                int index;
+                if (decimal(stIndex, index)) {
+                    value = memory[index];
+                    memory[address] =  arithmeticUnit(val1, value, "ADD", optype) ;
+                }
+                else {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
+                    return false;
+                }
+            }
+            else  if (optype == 'W') {
+                string stIndex = source.substr(2, source.length()-3);
+                int index;
+                if (decimal(stIndex, index)) {
+                    if (optype!=sourceType) {
+                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                        return false;
+                    }
+                    else {
+                        value = memory[index] + memory[index+1] * 256;
+                        int result = arithmeticUnit(val1, value, "ADD", optype);
+                        memory[address] = result & 0xff;
+                        memory[address+1] = (result >> 8) & 0xff;
+                    }
+                }
+                else {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
+                    return false;
+                }
+            }
+        }
+
+        //if source is variable
+        else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
+            if(source=="B"||source=="W") {
+                string  newSource= tokens[instructionNum+3];
+                if(variables.find(newSource)==variables.end()) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "after B OR W You should put valid variable ";
+                    return false;
+                }
+                if ((variables[newSource].second=="DB"&&source=="W")||(variables[newSource].second=="DW"&&source=="B")) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
+                    return false;
+                }
+                source=newSource;
+            }
+            char sourceType = variables[source].second.back();
+            if (sourceType == 'B') {
+                if (sourceType!=optype) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                value = memory[variables[source].first];
+                memory[address] = arithmeticUnit(val1, value, "ADD", optype);
+            }
+            if (sourceType=='W') {
+                if (sourceType!=optype) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                value = memory[variables[source].first]+  memory[variables[source].first+1]* 256;
+                int result = arithmeticUnit(val1, value, "ADD", optype);
+                memory[address] = result & 0xff;
+                memory[address+1] = (result >> 8) & 0xff;
+            }
+        }
+        else {
+            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation";
+            return false;
+        }
+    }
+    // destination is a variable
+    else if(destination=="B"||destination=="W"||variables.find(destination)!=variables.end()) {
+        if(destination=="B"||destination=="W") {
+            string type= destination;
+            destination= source;
+            source= tokens[op2+1];
+            if(variables.find(destination)==variables.end()) {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation, after B or W, there should be a variable";
+            }
+            if ((variables[destination].second=="DB"&&type=="W")||(variables[destination].second=="DW"&&destination=="B")) {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
+                return false;
+            }
+            instructionNum++; //Why, otherwise we can't decide for source variable, whether we are supposed to shift or not
+        }
+        char optype= variables[destination].second.back();
+        int value;
+        int address = variables[destination].first;
+        int val1;
+        if ( optype == 'B') {
+            val1 = memory[address];
+        }
+        else {
+            val1 = memory[address] + memory[address+1] * 256;
+        }
+        // if source is an immediate value
+        if (decimal(source, value)) {
+            if (optype == 'B') {
+                if (value > 255 || value < -255) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Overflow";
+                    return false;
+                }
+                else {
+                    value = (int)(char)value;  //are you sure this does work?
+                    memory[address] = arithmeticUnit(val1, value, "ADD", optype);
+                }
+            }
+            if (optype == 'W') {
+                if (value > 65535 || value< -65535) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Overflow";
+                    return false;
+                }
+                else {
+                    int result = arithmeticUnit(val1, value, "ADD", optype);
+                    memory[address] = result & 0xff;
+                    memory[address+1] = (result >> 8) & 0xff;
+                }
+            }
+        }
+        else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
+            value = source.at(1);
+            if (optype == 'B' ) {
+                memory[address] = arithmeticUnit(val1, value, "ADD", optype);
+            }
+            if (optype == 'W') {
+                int result = arithmeticUnit(val1, value, "ADD", optype);
+                memory[address] = result & 0xff;
+                memory[address+1] = (result >> 8) & 0xff;
+            }
+        }
+        //if the source is the contents of the register
+        else if (registers.find(source) != registers.end()) {
+            value = registers[source].first;
+            if (optype == 'B' ) {
+                if (value > 255) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Overflow";
+                    return false;
+                }
+                else {
+                    memory[address] = arithmeticUnit(val1, value, "ADD", optype);
+                }
+            }
+            if (optype == 'W') {
+                int result = arithmeticUnit(val1, value, "ADD", optype);
+                memory[address] = result & 0xff;
+                memory[address+1] = (result >> 8) & 0xff;
+            }
+        }
+        //There may be problem --
+        // case where the source is the contents of a memory offset pointed by a register
+        else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']') {
+            string registerName = source.substr(2,2);
+            if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
+                char sourceType = source.front();
+                if(sourceType!='B'&&sourceType!='W') {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Type can be only B or W";
+                    return false;
+                }
+                if (sourceType == 'B') {
+                    if(optype!=sourceType) {
+                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                        return false;
+                    }
+                    else{
+                        value = memory[registers[registerName].first];
+                        memory[address] = arithmeticUnit(val1, value, "ADD", optype);
+                    }
+
+                }
+                if (sourceType == 'W') {
+                    if (optype!=sourceType) {
+                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                        return false;
+                    }
+                    else {
+                        value = memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256;
+                        int result = arithmeticUnit(val1, value, "ADD", optype);
+                        memory[address] = result & 0xff;
+                        memory[address+1] = (result >> 8) & 0xff;
+                    }
+                }
+            }
+            else {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+                return false;
+            }
+        }
+        //case where the source contains a memory address
+        else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
+            char sourceType = source.front();
+            if (sourceType == 'B') {
+                if(optype!=sourceType) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                string stIndex = source.substr(2, source.length()-3);
+                int index;
+                if (decimal(stIndex, index)) {
+                    value = memory[index];
+                    memory[address] = arithmeticUnit(val1, value, "ADD", optype);
+
+                }
+                else {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
+                    return false;
+                }
+            }
+            else  if (optype == 'W') {
+                if (optype!=sourceType) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                string stIndex = source.substr(2, source.length()-3);
+                int index;
+                if (decimal(stIndex, index)) {
+                    value = memory[index] + memory[index+1] * 256;
+                    int result = arithmeticUnit(val1, value, "ADD", optype);
+                    memory[address] = result & 0xff;
+                    memory[address+1] = (result >> 8) & 0xff;
+                }
+
+                else {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
+                    return false;
+                }
+            }
+        }
+        else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
+            if(source=="B"||source=="W") {
+                //there may be a problem below at indexing
+                string  newSource= tokens[instructionNum+3];
+                if(variables.find(newSource)==variables.end()) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "after B OR W You should put valid variable ";
+                    return false;
+                }
+                if ((variables[newSource].second=="DB"&&source=="W")||(variables[newSource].second=="DW"&&source=="B")) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
+                    return false;
+                }
+                source=newSource;
+            }
+            char sourceType = variables[source].second.back();
+            if (sourceType == 'B') {
+                if (sourceType!=optype) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                value = memory[variables[source].first];
+                arithmeticUnit(val1, value, "ADD", optype);
+            }
+            if (sourceType=='W') {
+                if (sourceType!=optype) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
+                    return false;
+                }
+                value = memory[variables[source].first] + memory[variables[source].first+1] * 256;
+                int result = arithmeticUnit(val1, value, "ADD", optype);
+                memory[address] = result & 0xff;
+                memory[address+1] = (result >> 8) & 0xff;
+            }
+        }
+        else {
+            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation";
+            return false;
+        }
+    }
+    return true;
+}
