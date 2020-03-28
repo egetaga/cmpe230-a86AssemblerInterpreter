@@ -1435,34 +1435,36 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             return result;
         }
     }
-   /* if (operation == "RCR") {
+    if (operation == "RCR") {
         if (type == 'B') {
             int count = b;
-            count = count%8;
             unsigned char singlebyte = a & 0xFF;
-            if (count == 0) {
-                return singlebyte;
+            for (int i=0; i<count; i++) {
+                int rightmostbit = singlebyte & 1;
+                singlebyte = singlebyte >> 1;
+                int mask = 1 << 7;
+                singlebyte = (singlebyte & ~mask) | ((flags["CF"] << 7) & mask);
+                flags["CF"] = rightmostbit;
             }
-            unsigned int result = singlebyte >> count-1 | (singlebyte << 8-(count-1));
-            flags["CF"] = result & 1;
-            result = result >> 1 | (result << 7);
-            if (count == 1) {
-                flags["OF"] = result & (1<<7) xor result & (1<<6);
+            int result = singlebyte;
+            if ( count == 1) {
+                flags["OF"] = (result & (1<<6)) xor (result & (1<<7));
             }
             return result;
         }
         if (type == 'W') {
             int count = b;
-            count = count%16;
             unsigned short int singlebyte = a & 0xFFFF;
-            if (count == 0) {
-                return singlebyte;
+            for (int i=0; i<count; i++) {
+                int rightmostbit = singlebyte & 1;
+                singlebyte = singlebyte >> 1;
+                int mask = 1 << 15;
+                singlebyte = (singlebyte & ~mask) | ((flags["CF"] << 15) & mask);
+                flags["CF"] = rightmostbit;
             }
-            unsigned int result = singlebyte >> count-1 | (singlebyte << 16-(count-1));
-            flags["CF"] = result & 1;
-            result = result >> 1 | (result << 15);
-            if (count == 1) {
-                flags["OF"] = result & (1<<15) xor result & (1<<14);
+            int result = singlebyte;
+            if ( count == 1) {
+                flags["OF"] = (result & (1<<14)) xor (result & (1<<15));
             }
             return result;
         }
@@ -1470,35 +1472,37 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
     if (operation == "RCL") {
         if (type == 'B') {
             int count = b;
-            count = count%8;
             unsigned char singlebyte = a & 0xFF;
-            if (count == 0) {
-                return singlebyte;
+            for (int i=0; i<count; i++) {
+                int leftmostbit = singlebyte & 1;
+                singlebyte = singlebyte << 1;
+                int mask = 1;
+                singlebyte = (singlebyte & ~mask) | ((flags["CF"]) & mask);
+                flags["CF"] = leftmostbit;
             }
-            unsigned int result = singlebyte << count-1 | (singlebyte >> 8-(count-1));
-            flags["CF"] = result & (1<<7);
-            result = result << 1 | (result >> 7);
-            if (count == 1) {
-                flags["OF"] = result & (1<<7) xor flags["CF"];
+            int result = singlebyte;
+            if ( count == 1) {
+                flags["OF"] = flags["CF"] xor (result & (1<<7));
             }
             return result;
         }
         if (type == 'W') {
             int count = b;
-            count = count%16;
             unsigned short int singlebyte = a & 0xFFFF;
-            if (count == 0) {
-                return singlebyte;
+            for (int i=0; i<count; i++) {
+                int leftmostbit = singlebyte & 1;
+                singlebyte = singlebyte << 1;
+                int mask = 1;
+                singlebyte = (singlebyte & ~mask) | ((flags["CF"]) & mask);
+                flags["CF"] = leftmostbit;
             }
-            unsigned int result = singlebyte << count-1 | (singlebyte >> 16-(count-1));
-            flags["CF"] = result & (1<<15);
-            result = result << 1 | (result >> 15);
-            if (count == 1) {
-                flags["OF"] = result & (1<<15) xor flags["CF"];
+            int result = singlebyte;
+            if ( count == 1) {
+                flags["OF"] = flags["CF"] xor (result & (1<<15));
             }
             return result;
         }
-    } */
+    }
 }
 
 unsigned int arithmeticUnit(unsigned int a, string operation, char type) {
@@ -1517,6 +1521,9 @@ unsigned int arithmeticUnit(unsigned int a, string operation, char type) {
             flags["CF"] = flags["OF"] = ((result >> 16) & 0xFF) != 0;
             return result;
         }
+    }
+    if (operation == "NOT") {
+        return ~a;
     }
 }
 
