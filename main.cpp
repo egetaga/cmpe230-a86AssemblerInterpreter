@@ -2330,7 +2330,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 unsigned int multiplier= registers[operand].first;
                 unsigned int product= arithmeticUnit(multiplier, "MUL", 'W');
                 registers["AX"].first=product&(65535u);  //takes the lowest 16 bits of product
-                registers["DX"].first= product>>16u;
+                registers["DX"].first= (product>>16u)&(65535u);
                 updateRegisters("AX");
                 updateRegisters("DX");
             }
@@ -2361,7 +2361,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 unsigned int multiplier= memory[variables[operand].first]+memory[variables[operand].first+1]*256;
                 unsigned int product= arithmeticUnit(multiplier, "MUL", 'W');
                 registers["AX"].first=product&(65535u);  //takes the lowest 16 bits of product
-                registers["DX"].first= product>>16u;
+                registers["DX"].first= (product>>16u)&(65535u);
                 updateRegisters("AX");
                 updateRegisters("DX");
             }
@@ -2389,7 +2389,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 unsigned int multiplier= memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256 ;;
                 unsigned int product= arithmeticUnit(multiplier, "MUL", 'W');
                 registers["AX"].first=product&(65535u);  //takes the lowest 16 bits of product
-                registers["DX"].first= product>>16u;
+                registers["DX"].first= (product>>16u)&(65535u);
                 updateRegisters("AX");
                 updateRegisters("DX");
             }
@@ -2424,7 +2424,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     unsigned  int multiplier= memory[index] + memory[index+1] * 256;
                     unsigned int product= arithmeticUnit(multiplier, "MUL", 'W');
                     registers["AX"].first=product&(65535u);  //takes the lowest 16 bits of product
-                    registers["DX"].first= product>>16u;
+                    registers["DX"].first= (product>>16u)&(65535u);
                     updateRegisters("AX");
                     updateRegisters("DX");
 
@@ -2488,7 +2488,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 unsigned int opValue= memory[variables[operand].first]+memory[variables[operand].first+1]*256;
                 unsigned int result= arithmeticUnit(opValue, "NOT", 'W');
                 memory[variables[operand].first]=result&(255u);  //takes the lowest 8 bits of result
-                memory[variables[operand].first+1]= result>>(8u);  // take the 8 higher bits
+                memory[variables[operand].first+1]= (result>>(8u))&(255u);  // take the 8 higher bits
             }
             else {
                 cout << "Error at line:" << lineNumber[instructionNum] << "Incorrect operand for NOT operation";
@@ -2513,7 +2513,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 unsigned int opValue= memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256;
                 unsigned int result= arithmeticUnit(opValue, "NOT", 'W');
                 memory[registers[registerName].first]=result&(255u);  //takes the lowest 8 bits of result
-                memory[registers[registerName].first+1]= result>>(8u);  // take the 8 higher bits
+                memory[registers[registerName].first+1]= (result>>(8u))&(255u);  // take the 8 higher bits
             }
             else {
                 cout << "Error at line:" << lineNumber[instructionNum] << "Incorrect operand for NOT operation";
@@ -2544,7 +2544,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     unsigned int opValue=memory[index] + memory[index+1] * 256;
                     unsigned int result= arithmeticUnit(opValue, "NOT", 'W');
                     memory[index]=result&(255u);  //takes the lowest 8 bits of result
-                    memory[index+1]= result>>(8u);  // takes the  higher 8 bits
+                    memory[index+1]= (result>>(8u))&(255u);  // takes the  higher 8 bits
                 }
                 else {
                     cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
