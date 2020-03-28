@@ -27,10 +27,12 @@ int fetchValue(string varName);
 void updateRegisters(string changedRegister);
 bool mov(int instructionNum);
 bool checkSyntax(string& instruction, int& i);
-bool push(int instructionNum)
+bool push(int instructionNum);
 vector<int> lineNumber;
 bool decimal(string st, int& a);
 int a;
+bool sub(int instructionNum);
+bool andf(int instructionNum)
 void toUpperCase(string& token);
 int arithmeticUnit(int a, int b, string  operation, char type);
 int main() {
@@ -82,7 +84,7 @@ int main() {
     }
 
   //   Following code prints out the state of the processor to the standard output
-  /* cout << "Memory\n";
+   cout << "Memory\n";
     for (int i=0; i<40; i++) {
         cout << memory[i] << " ";
     }
@@ -107,7 +109,7 @@ int main() {
     }
     cout << "\nFlags\n";
     cout << "ZF = " << flags["ZF"] << " AF = " << flags["AF"]<<" CF = "<< flags["CF"] <<" SF = " << flags["SF"] << " OF = " << flags["OF"];
-*/
+
 }
 
 bool initializeTokens(ifstream& inFile) { // Function to read the input program, write the tokens to the tokens vector and initialize memory
@@ -1092,9 +1094,9 @@ bool pop(int instructionNum) {
     return false;
 }
 
-int arithmeticUnit(int a, int b, string  operation, char type) {
-    unsigned int op1 = a;
-    unsigned int op2 = b;
+int arithmeticUnit(int op1, int op2, string  operation, char type) {
+    unsigned int a = op1;
+    unsigned int b = op2;
     if (operation == "ADD") {
         if (type == 'B') {
             if (a+b > 255) {
@@ -1128,13 +1130,6 @@ int arithmeticUnit(int a, int b, string  operation, char type) {
             else {
                 flags["AF"] = 0;
             }
-            int parity = 0;
-            int tempresult = result;
-            for (int i=0; i<8; i++) {
-                parity+=tempresult%2;
-                tempresult/=2;
-            }
-            flags["PF"] = parity%2;
             return result;
         }
         if (type == 'W') {
@@ -1169,17 +1164,175 @@ int arithmeticUnit(int a, int b, string  operation, char type) {
             else {
                 flags["AF"] = 0;
             }
-            int parity = 0;
-            int tempresult = result;
-            for (int i=0; i<8; i++) {
-                parity+=tempresult%2;
-                tempresult/=2;
-            }
-            flags["PF"] = parity%2;
             return result;
         }
     }
-    return INT_MIN;
+    if (operation == "SUB") {
+        if (type == 'B') {
+            if (a < b) {
+                flags["CF"] = 1;
+            }
+            else {
+                flags["CF"] = 0;
+            }
+            int leftmostbit_op1 = (1 << 7) & op1;
+            int leftmostbit_op2 = (1 << 7) & op2;
+            int result = (a-b) & 0xFF;
+            int leftmostbit_result = (1<<7) & result;
+            if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
+                flags["OF"] = 1;
+            }
+            else {
+                flags["0F"] = 0;
+            }
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            int lownibble_op1 = op1 & 0xF;
+            int lownibble_op2 = op2 & 0xF;
+            if (lownibble_op1 < lownibble_op2) {
+                flags["AF"] = 1;
+            }
+            else {
+                flags["AF"] = 0;
+            }
+            return result;
+        }
+        if (type == 'W') {
+            if (a < b) {
+                flags["CF"] = 1;
+            }
+            else {
+                flags["CF"] = 0;
+            }
+            int leftmostbit_op1 = (1 << 15) & op1;
+            int leftmostbit_op2 = (1 << 15) & op2;
+            int result = (a-b) & 0xFFFF;
+            int leftmostbit_result = (1<<15) & result;
+            if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
+                flags["OF"] = 1;
+            }
+            else {
+                flags["0F"] = 0;
+            }
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            int lownibble_op1 = op1 & 0xF;
+            int lownibble_op2 = op2 & 0xF;
+            if (lownibble_op1 < lownibble_op2 ) {
+                flags["AF"] = 1;
+            }
+            else {
+                flags["AF"] = 0;
+            }
+            return result;
+        }
+    }
+    if (operation == "AND") {
+        if (type == 'B') {
+            flags["CF"] = 0;
+            flags["0F"] = 0;
+            flags["AF"] = 0;
+            int result = (a & b) & 0xFF;
+            int leftmostbit_result = (1<<7) & result;
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+        if (type == 'W') {
+            flags["CF"] = 0;
+            flags["0F"] = 0;
+            flags["AF"] = 0;
+            int result = (a & b) & 0xFFFF;
+            int leftmostbit_result = (1<<15) & result;
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+    }
+    if (operation == "XOR") {
+        if (type == 'B') {
+            flags["CF"] = 0;
+            flags["0F"] = 0;
+            flags["AF"] = 0;
+            int result = (a xor b) & 0xFF;
+            int leftmostbit_result = (1<<7) & result;
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+        if (type == 'W') {
+            flags["CF"] = 0;
+            flags["0F"] = 0;
+            flags["AF"] = 0;
+            int result = (a xor b) & 0xFFFF;
+            int leftmostbit_result = (1<<15) & result;
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+    }
+    if (operation == "OR") {
+        if (type == 'B') {
+            flags["CF"] = 0;
+            flags["0F"] = 0;
+            flags["AF"] = 0;
+            int result = (a or b) & 0xFF;
+            int leftmostbit_result = (1<<7) & result;
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+        if (type == 'W') {
+            flags["CF"] = 0;
+            flags["0F"] = 0;
+            flags["AF"] = 0;
+            int result = (a or b) & 0xFFFF;
+            int leftmostbit_result = (1<<15) & result;
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+    }
 }
 
 bool add(int instructionNum) {
@@ -1197,7 +1350,7 @@ bool add(int instructionNum) {
             optype == 'B';
         }
         else {
-            optype = 'W'
+            optype = 'W';
         }
         int value;
         if (decimal(source, value)) {
