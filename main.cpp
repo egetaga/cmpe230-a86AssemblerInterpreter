@@ -1094,7 +1094,7 @@ bool pop(int instructionNum) {
     return false;
 }
 
-int arithmeticUnit(int op1, int op2, string  operation, char type) {
+unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
     unsigned int a = op1;
     unsigned int b = op2;
     if (operation == "ADD") {
@@ -1330,6 +1330,189 @@ int arithmeticUnit(int op1, int op2, string  operation, char type) {
             else {
                 flags["ZF"] = 0;
             }
+            return result;
+        }
+    }
+    if (operation == "SHR") {
+        if (type == 'B') {
+            int count = b;
+            unsigned char singlebyte = a & 0xFF;
+            if (count == 0) {
+                return singlebyte;
+            }
+            unsigned int result = singlebyte >> count-1;
+            if (count < 8) {
+                flags["CF"] = result & 1;
+            }
+            result = result >> 1;
+            if (count == 1) {
+                flags["OF"] = singlebyte & (1 << 7);
+            }
+            int leftmostbit_result = (1<<15) & result;
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+        if (type == 'W') {
+            int count = b;
+            unsigned short int twobytes = a & 0xFFFF;
+            if (count == 0) {
+                return twobytes;
+            }
+            unsigned int result = twobytes >> count-1;
+            if (count < 16) {
+                flags["CF"] = result & 1;
+            }
+            result = result >> 1;
+            if (count == 1) {
+                flags["OF"] = twobytes & (1 << 15);
+            }
+            int leftmostbit_result = (1<<15) & result;
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+    }
+    if (operation == "SHL") {
+        if (type == 'B') {
+            int count = b;
+            unsigned char singlebyte = a & 0xFF;
+            if (count == 0) {
+                return singlebyte;
+            }
+            unsigned int result = singlebyte << count-1;
+            if (count < 8) {
+                flags["CF"] = result & (1<<7);
+            }
+            result = result << 1;
+            int leftmostbit_result = (1<<15) & result;
+            if (count == 1) {
+                flags["OF"] = leftmostbit_result == flags["CF"];
+            }
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+        if (type == 'W') {
+            int count = b;
+            unsigned short int twobytes = a & 0xFFFF;
+            if (count == 0) {
+                return twobytes;
+            }
+            unsigned int result = twobytes << count-1;
+            if (count < 16) {
+                flags["CF"] = result & 1;
+            }
+            result = result << 1;
+            if (count == 1) {
+                flags["OF"] = twobytes & (1 << 15);
+            }
+            int leftmostbit_result = (1<<15) & result;
+            flags["SF"] = leftmostbit_result;
+            if (result == 0) {
+                flags["ZF"] = 1;
+            }
+            else {
+                flags["ZF"] = 0;
+            }
+            return result;
+        }
+    }
+   /* if (operation == "RCR") {
+        if (type == 'B') {
+            int count = b;
+            count = count%8;
+            unsigned char singlebyte = a & 0xFF;
+            if (count == 0) {
+                return singlebyte;
+            }
+            unsigned int result = singlebyte >> count-1 | (singlebyte << 8-(count-1));
+            flags["CF"] = result & 1;
+            result = result >> 1 | (result << 7);
+            if (count == 1) {
+                flags["OF"] = result & (1<<7) xor result & (1<<6);
+            }
+            return result;
+        }
+        if (type == 'W') {
+            int count = b;
+            count = count%16;
+            unsigned short int singlebyte = a & 0xFFFF;
+            if (count == 0) {
+                return singlebyte;
+            }
+            unsigned int result = singlebyte >> count-1 | (singlebyte << 16-(count-1));
+            flags["CF"] = result & 1;
+            result = result >> 1 | (result << 15);
+            if (count == 1) {
+                flags["OF"] = result & (1<<15) xor result & (1<<14);
+            }
+            return result;
+        }
+    }
+    if (operation == "RCL") {
+        if (type == 'B') {
+            int count = b;
+            count = count%8;
+            unsigned char singlebyte = a & 0xFF;
+            if (count == 0) {
+                return singlebyte;
+            }
+            unsigned int result = singlebyte << count-1 | (singlebyte >> 8-(count-1));
+            flags["CF"] = result & (1<<7);
+            result = result << 1 | (result >> 7);
+            if (count == 1) {
+                flags["OF"] = result & (1<<7) xor flags["CF"];
+            }
+            return result;
+        }
+        if (type == 'W') {
+            int count = b;
+            count = count%16;
+            unsigned short int singlebyte = a & 0xFFFF;
+            if (count == 0) {
+                return singlebyte;
+            }
+            unsigned int result = singlebyte << count-1 | (singlebyte >> 16-(count-1));
+            flags["CF"] = result & (1<<15);
+            result = result << 1 | (result >> 15);
+            if (count == 1) {
+                flags["OF"] = result & (1<<15) xor flags["CF"];
+            }
+            return result;
+        }
+    } */
+}
+
+unsigned int arithmeticUnit(unsigned int a, string operation, char type) {
+    if (operation == "MUL") {
+        if (type == 'B') {
+            unsigned char val1 = registers["AL"].first;
+            unsigned char val2 = a;
+            unsigned short int result = val1 * val2;
+            flags["CF"] = flags["OF"] = ((result >> 8) & 0xFF) != 0;
+            return result;
+        }
+        if (type == 'W') {
+            unsigned char val1 = registers["AX"].first;
+            unsigned char val2 = a;
+            unsigned int result = val1 * val2;
+            flags["CF"] = flags["OF"] = ((result >> 16) & 0xFF) != 0;
             return result;
         }
     }
