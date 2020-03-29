@@ -2686,3 +2686,22 @@ bool generalJump(string& op, int& index)  {
     }
     return true;
 }
+
+bool interrupt(int instructionNum) {
+    string operand = tokens[instructionNum+1];
+    int value;
+    if (decimal(operand, value)) {
+        if (value == 20) {
+            exit (EXIT_SUCCESS);
+        }
+        else if (value == 21) {
+            if (registers["AH"].first == 1) {
+                char x;
+                cin >> x;
+                registers["AL"].first = x;
+                cout << x;
+                updateRegisters("AL");
+            }
+        }
+    }
+}
