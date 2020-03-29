@@ -1169,7 +1169,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             return result;
         }
     }
-    if (operation == "SUB") {
+    if (operation == "SUB"||operation=="CMP") {
         if (type == 'B') {
             if (a < b) {
                 flags["CF"] = 1;
@@ -1526,7 +1526,6 @@ unsigned int arithmeticUnit(unsigned int a, string operation, char type) {
         return ~a;
     }
 }
-
 bool twoOperandArithmetic(string& operation, int instructionNum) {
     int op1= instructionNum+1;
     int op2= instructionNum+2;
@@ -1557,12 +1556,15 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 return false;
             }
             else {
-                registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                if(operation!="CMP")   //CMP
+                    registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                else  arithmeticUnit(val1, value, operation, optype);
             }
         }
         else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
             value = source.at(1);
-            registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+            if(operation!="CMP") registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+            else arithmeticUnit(val1, value, operation, optype);
         }
         else if (source == "OFFSET") {
             string variable= tokens[op2+1];
@@ -1576,7 +1578,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 return false;
             }
             else {
-                registers[destination].first = arithmeticUnit(val1, value, "ADD", optype);
+                if(operation!="CMP") registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                else arithmeticUnit(val1, value, operation, optype);
             }
         }
             // case where source is the contents of another register
@@ -1587,7 +1590,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             }
             else {
                 value = registers[source].first;
-                registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                if(operation!="CMP") registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                else  arithmeticUnit(val1, value, operation, optype);
             }
         }
             // case where the source is the contents of a memory offset pointed by a register
@@ -1605,7 +1609,9 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                         return false;
                     }
                     value = memory[registers[registerName].first];
-                    registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                    if(operation!="CMP")
+                        registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                    else arithmeticUnit(val1, value, operation, optype);
                 }
                 if (type == 'W') {
                     if (registers[destination].second == 255) {
@@ -1614,7 +1620,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     }
                     else {
                         value = memory[registers[registerName].first]+ memory[registers[registerName].first + 1] * 256 ;
-                        registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                        if(operation!="CMP")  registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                        else  arithmeticUnit(val1, value, operation, optype);
                     }
                 }
             }
@@ -1635,7 +1642,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 int address;
                 if (decimal(val, address)) {
                     value = memory[address];
-                    registers[destination].first = arithmeticUnit(val1, value, operation,optype);
+                    if(operation!="CMP") registers[destination].first = arithmeticUnit(val1, value, operation,optype);
+                    else arithmeticUnit(val1, value, operation,optype);
                 }
                 else {
                     cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
@@ -1652,7 +1660,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     }
                     else {
                         value = memory[address]+ memory[address+1]*256;
-                        registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                        if(operation!="CMP") registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                        else arithmeticUnit(val1, value, operation, optype);
                     }
                 }
                 else {
@@ -1682,7 +1691,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     return false;
                 }
                 value = memory[variables[source].first];
-                registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                if(operation!="CMP") registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                else arithmeticUnit(val1, value, operation, optype);
             }
             if (type == "DW") {
                 if (registers[destination].second == 255) {
@@ -1690,14 +1700,16 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     return false;
                 }
                 value = memory[variables[source].first]+memory[variables[source].first+1] * 256;
-                registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                if(operation!="CMP") registers[destination].first = arithmeticUnit(val1, value, operation, optype);
+                else arithmeticUnit(val1, value, operation, optype);
             }
         }
         else {
             cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for MOV operation";
             return false;
         }
-        updateRegisters(destination);
+        if(operation!="CMP")
+            updateRegisters(destination);
     }
         // cases where destination is a memory location
     else if ((destination.size()>1)&& destination.at(1) == '[' && destination.back() == ']') {
@@ -1721,8 +1733,12 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         if ( optype == 'B') {
             val1 = memory[address];
         }
-        else {
+        else if(optype=='W') {
             val1 = memory[address] + memory[address+1] * 256;
+        }
+        else  {
+            cout << "Error at line:"<<lineNumber[instructionNum] << "Incorrect syntax.." << endl;
+            return false;
         }
         // if source is an immediate value
         int value;
@@ -1734,6 +1750,9 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
                 else {
                     value = (int)(char)value;
+                    int result = arithmeticUnit(val1, value, operation, optype);
+                    if(operation!="CMP")
+                        memory[address] = result & 0xff;
                 }
             }
             if (optype == 'W') {
@@ -1744,20 +1763,27 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 else {
                     value = (unsigned short int)value;
                     int result = arithmeticUnit(val1, value, operation, optype);
-                    memory[address] = result & 0xff;
-                    memory[address+1] = (result >> 8) & 0xff;
+                    if(operation!="CMP") {
+                        memory[address] = result & 0xff;
+                        memory[address+1] = (result >> 8) & 0xff;
+                    }
                 }
+
             }
         }
         else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
             value = source.at(1);
             if (optype == 'B' ) {
-                memory[address] = arithmeticUnit(val1, value, operation, optype);;
+                if(operation!="CMP")
+                    memory[address] = arithmeticUnit(val1, value, operation, optype);
+                else  arithmeticUnit(val1, value, operation, optype);
             }
             if (optype == 'W') {
                 int result = arithmeticUnit(val1, value, operation, optype);
-                memory[address] = result & 0xff;
-                memory[address+1] = (result >> 8) & 0xff;
+                if(operation!="CMP") {
+                    memory[address] = result & 0xff;
+                    memory[address+1] = (result >> 8) & 0xff;
+                }
             }
         }
             // if source is the contents of a register
@@ -1769,13 +1795,16 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     return false;
                 }
                 else {
-                    memory[address] =  arithmeticUnit(val1, value, operation, optype) ;
+                    if(operation!="CMP") memory[address] =  arithmeticUnit(val1, value, operation, optype) ;
+                    else arithmeticUnit(val1, value, operation, optype) ;
                 }
             }
             if (optype == 'W') {
                 int result = arithmeticUnit(val1, value, operation, optype);
-                memory[address] = result & 0xff;
-                memory[address+1] = (result >> 8) & 0xff;
+                if(operation!="CMP") {
+                    memory[address] = result & 0xff;
+                    memory[address+1] = (result >> 8) & 0xff;
+                }
             }
         }
             // case where the source is the contents of a memory offset pointed by a register
@@ -1794,9 +1823,9 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     }
                     else{
                         value = memory[registers[registerName].first];
-                        memory[address] =  arithmeticUnit(val1, value, operation, optype) ;
+                        if(operation!="CMP") memory[address] =  arithmeticUnit(val1, value, operation, optype) ;
+                        else arithmeticUnit(val1, value, operation, optype) ;
                     }
-
                 }
                 if (sourceType == 'W') {
                     if (optype!=sourceType) {
@@ -1806,8 +1835,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     else {
                         value= memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256;
                         int result = arithmeticUnit(val1, value, operation, optype);
-                        memory[address] = result & 0xff;
-                        memory[address+1] = (result >> 8) & 0xff;
+                        if(operation!="CMP") {
+                            memory[address] = result & 0xff;
+                            memory[address + 1] = (result >> 8) & 0xff;
+                        }
                     }
                 }
             }
@@ -1828,7 +1859,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 int index;
                 if (decimal(stIndex, index)) {
                     value = memory[index];
-                    memory[address] =  arithmeticUnit(val1, value, operation, optype) ;
+                    if(operation!="CMP") memory[address] =  arithmeticUnit(val1, value, operation, optype) ;
+                    else arithmeticUnit(val1, value, operation, optype) ;
                 }
                 else {
                     cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
@@ -1846,8 +1878,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     else {
                         value = memory[index] + memory[index+1] * 256;
                         int result = arithmeticUnit(val1, value, operation, optype);
-                        memory[address] = result & 0xff;
-                        memory[address+1] = (result >> 8) & 0xff;
+                        if(operation!="CMP") {
+                            memory[address] = result & 0xff;
+                            memory[address+1] = (result >> 8) & 0xff;
+                        }
                     }
                 }
                 else {
@@ -1878,7 +1912,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     return false;
                 }
                 value = memory[variables[source].first];
-                memory[address] = arithmeticUnit(val1, value, operation, optype);
+                if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
+                else arithmeticUnit(val1, value, operation, optype);
             }
             if (sourceType=='W') {
                 if (sourceType!=optype) {
@@ -1887,8 +1922,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
                 value = memory[variables[source].first]+  memory[variables[source].first+1]* 256;
                 int result = arithmeticUnit(val1, value, "ADD", optype);
-                memory[address] = result & 0xff;
-                memory[address+1] = (result >> 8) & 0xff;
+                if(operation!="CMP") {
+                    memory[address] = result & 0xff;
+                    memory[address+1] = (result >> 8) & 0xff;
+                }
             }
         }
         else {
@@ -1930,7 +1967,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
                 else {
                     value = (int)(char)value;  //are you sure this does work?
-                    memory[address] = arithmeticUnit(val1, value, operation, optype);
+                    if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
+                    else  arithmeticUnit(val1, value, operation, optype);
                 }
             }
             if (optype == 'W') {
@@ -1940,20 +1978,25 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
                 else {
                     int result = arithmeticUnit(val1, value, operation, optype);
-                    memory[address] = result & 0xff;
-                    memory[address+1] = (result >> 8) & 0xff;
+                    if(operation!="CMP")
+                    {   memory[address] = result & 0xff;
+                        memory[address+1] = (result >> 8) & 0xff;
+                    }
                 }
             }
         }
         else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
             value = source.at(1);
             if (optype == 'B' ) {
-                memory[address] = arithmeticUnit(val1, value, operation, optype);
+                if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
+                else arithmeticUnit(val1, value, operation, optype);
             }
             if (optype == 'W') {
                 int result = arithmeticUnit(val1, value, operation, optype);
-                memory[address] = result & 0xff;
-                memory[address+1] = (result >> 8) & 0xff;
+                if(operation!="CMP") {
+                    memory[address] = result & 0xff;
+                    memory[address+1] = (result >> 8) & 0xff;
+                }
             }
         }
             //if the source is the contents of the register
@@ -1965,13 +2008,16 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     return false;
                 }
                 else {
-                    memory[address] = arithmeticUnit(val1, value, operation, optype);
+                    if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
+                    else arithmeticUnit(val1, value, operation, optype);
                 }
             }
             if (optype == 'W') {
                 int result = arithmeticUnit(val1, value, operation, optype);
-                memory[address] = result & 0xff;
-                memory[address+1] = (result >> 8) & 0xff;
+                if(operation!="CMP") {
+                    memory[address] = result & 0xff;
+                    memory[address+1] = (result >> 8) & 0xff;
+                }
             }
         }
             //There may be problem --
@@ -1991,7 +2037,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     }
                     else{
                         value = memory[registers[registerName].first];
-                        memory[address] = arithmeticUnit(val1, value, operation, optype);
+                        if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
+                        else  arithmeticUnit(val1, value, operation, optype);
                     }
 
                 }
@@ -2003,8 +2050,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     else {
                         value = memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256;
                         int result = arithmeticUnit(val1, value, operation, optype);
-                        memory[address] = result & 0xff;
-                        memory[address+1] = (result >> 8) & 0xff;
+                        if(operation!="CMP") {
+                            memory[address] = result & 0xff;
+                            memory[address+1] = (result >> 8) & 0xff;
+                        }
                     }
                 }
             }
@@ -2025,8 +2074,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 int index;
                 if (decimal(stIndex, index)) {
                     value = memory[index];
-                    memory[address] = arithmeticUnit(val1, value, operation, optype);
-
+                    if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
+                    else arithmeticUnit(val1, value, operation, optype);
                 }
                 else {
                     cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
@@ -2043,8 +2092,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 if (decimal(stIndex, index)) {
                     value = memory[index] + memory[index+1] * 256;
                     int result = arithmeticUnit(val1, value, operation, optype);
-                    memory[address] = result & 0xff;
-                    memory[address+1] = (result >> 8) & 0xff;
+                    if(operation!="CMP"){
+                        memory[address] = result & 0xff;
+                        memory[address+1] = (result >> 8) & 0xff;
+                    }
                 }
 
                 else {
@@ -2074,7 +2125,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     return false;
                 }
                 value = memory[variables[source].first];
-                arithmeticUnit(val1, value, operation, optype);
+                int result =arithmeticUnit(val1, value, operation, optype);
+                if(operation!="CMP") memory[address] = result & 0xff;
             }
             if (sourceType=='W') {
                 if (sourceType!=optype) {
@@ -2083,8 +2135,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
                 value = memory[variables[source].first] + memory[variables[source].first+1] * 256;
                 int result = arithmeticUnit(val1, value, operation, optype);
-                memory[address] = result & 0xff;
-                memory[address+1] = (result >> 8) & 0xff;
+                if(operation!="CMP") {
+                    memory[address] = result & 0xff;
+                    memory[address+1] = (result >> 8) & 0xff;
+                }
             }
         }
         else {
@@ -2094,7 +2148,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
     }
     return true;
 }
-    bool singleOperandArithmetic(string& operation, int instructionNum) {
+bool singleOperandArithmetic(string& operation, int instructionNum) {
     int opNum= instructionNum+1;
     string operand= tokens[opNum];
 
@@ -2146,55 +2200,55 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             return true;
         }
         else if(operand=="W"||operand=="B"||variables.find(operand)!=variables.end()) {
-                if(operand=="W"||operand=="B") {
-                    string newOp= tokens[instructionNum+2];
-                    if(variables.find(newOp)==variables.end()|| variables[newOp].second.back()!=newOp.front() ) {
-                        cout << "Error at line:" << lineNumber[instructionNum] << "Incorrect operand for DIV operation";
-                        return false;
-                    }
-                    operand= newOp;
-                }
-                if(variables[operand].second.back()=='B') {
-                    unsigned  int divisor= memory[variables[operand].first];
-                    if(divisor==0) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << "Divisor cannot be 0";
-                        return false;
-                    }
-                    unsigned int quotient= registers["AX"].first/divisor;
-                    if(quotient>255) {
-                        cout << "Error at line:" << lineNumber[instructionNum] << "Overflow in DIV operation, the result does not fit in 8 bits";
-                        return false;
-                    }
-                    unsigned  int remainder= registers["AX"].first%divisor;
-                    registers["AL"].first=quotient;
-                    registers["AH"].first=remainder;
-                    updateRegisters("AL");
-                    updateRegisters("AH");
-
-                }
-                else if(variables[operand].second.back()=='W') {
-                    unsigned int divisor= memory[variables[operand].first]+memory[variables[operand].first+1]*256;
-                    if(divisor==0) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << "Divisor cannot be 0";
-                        return false;
-                    }
-                    unsigned int dividend= (( registers["DX"].first)*65536) + registers["AX"].first;
-                    unsigned int quotient= dividend/divisor;
-                    unsigned  int remainder= dividend%divisor;
-                    if(quotient>65535) {
-                        cout << "Error at line:" << lineNumber[instructionNum] << "Overflow in DIV operation, the result does not fit in 8 bits";
-                        return false;
-                    }
-                    registers["AX"].first= quotient;
-                    registers["DX"].first= remainder;
-                    updateRegisters("AX");
-                    updateRegisters("DX");
-
-
-                }
-                else {
+            if(operand=="W"||operand=="B") {
+                string newOp= tokens[instructionNum+2];
+                if(variables.find(newOp)==variables.end()|| variables[newOp].second.back()!=newOp.front() ) {
                     cout << "Error at line:" << lineNumber[instructionNum] << "Incorrect operand for DIV operation";
                     return false;
+                }
+                operand= newOp;
+            }
+            if(variables[operand].second.back()=='B') {
+                unsigned  int divisor= memory[variables[operand].first];
+                if(divisor==0) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Divisor cannot be 0";
+                    return false;
+                }
+                unsigned int quotient= registers["AX"].first/divisor;
+                if(quotient>255) {
+                    cout << "Error at line:" << lineNumber[instructionNum] << "Overflow in DIV operation, the result does not fit in 8 bits";
+                    return false;
+                }
+                unsigned  int remainder= registers["AX"].first%divisor;
+                registers["AL"].first=quotient;
+                registers["AH"].first=remainder;
+                updateRegisters("AL");
+                updateRegisters("AH");
+
+            }
+            else if(variables[operand].second.back()=='W') {
+                unsigned int divisor= memory[variables[operand].first]+memory[variables[operand].first+1]*256;
+                if(divisor==0) {
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Divisor cannot be 0";
+                    return false;
+                }
+                unsigned int dividend= (( registers["DX"].first)*65536) + registers["AX"].first;
+                unsigned int quotient= dividend/divisor;
+                unsigned  int remainder= dividend%divisor;
+                if(quotient>65535) {
+                    cout << "Error at line:" << lineNumber[instructionNum] << "Overflow in DIV operation, the result does not fit in 8 bits";
+                    return false;
+                }
+                registers["AX"].first= quotient;
+                registers["DX"].first= remainder;
+                updateRegisters("AX");
+                updateRegisters("DX");
+
+
+            }
+            else {
+                cout << "Error at line:" << lineNumber[instructionNum] << "Incorrect operand for DIV operation";
+                return false;
 
             }
 
@@ -2250,7 +2304,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 return false;
             }
 
-        return true;
+            return true;
         }
 
         else if ((operand.size()>1)&&(operand.at(1) == '[' && operand.back() == ']')) {
@@ -2322,7 +2376,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             return false;
         }
 
-    return true;
+        return true;
 
     }
     else if(operation=="MUL"){
@@ -2569,6 +2623,66 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             return false;
         }
         return true;
+    }
+    return true;
+}
+bool jmp(int& index) {
+    //I assumed, this index is the index of
+    int instructionNum= index;
+    string token= tokens[index];
+    string label= tokens[index+1];
+    if(labels.find(label)==labels.end()) {
+        cout << "Error at line:" << lineNumber[instructionNum] << "There is no label as "<<label;
+        return false;
+    }
+    index= labels[label];
+}
+bool generalJump(string& op, int& index)  {
+    int instructionNum= index;
+    if(op=="JMP"){
+        if(!jmp(index)) return false;
+    }
+    else if(op=="JZ"||op=="JE"){
+        if(flags["ZF"]) {
+            if(!jmp(index)){
+                return false;
+            }  }
+    }
+    else if(op=="JNZ"||op=="JNE") {
+
+        if(!flags["ZF"]) {
+            if(!jmp(index)){
+                return false;
+            }  }
+    }
+    else if(op=="JA"||op=="JNBE"){
+        if(!flags["ZF"]&&!flags["CF"]) {
+            if(!jmp(index)){
+                return false;
+            }  }
+    }
+    else if(op=="JAE"||op=="JNB"||op=="JNC") {
+        if(!flags["CF"]) {
+            if(!jmp(index)){
+                return false;
+            }  }
+
+    }
+    else if(op=="JB"||op=="JNAE"||op=="JC"){
+        if(flags["CF"]) {
+            if(!jmp(index)){
+                return false;
+            }  }
+    }
+    else if(op=="JBE"){
+        if(flags["ZF"]&&flags["CF"]) {
+            if(!jmp(index)){
+                return false;
+            }  }
+    }
+    else {
+        cout << "Error at line:" << lineNumber[instructionNum] << "There is no instruction as "<<op;
+        return false;
     }
     return true;
 }
