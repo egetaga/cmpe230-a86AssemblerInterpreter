@@ -2661,10 +2661,10 @@ bool interrupt(int instructionNum) {
     string operand = tokens[instructionNum+1];
     int value;
     if (decimal(operand, value)) {
-        if (value == 20) {
+        if (value == 0x20) {
             exit (EXIT_SUCCESS);
         }
-        else if (value == 21) {
+        else if (value == 0x21) {
             if (registers["AH"].first == 1) {
                 char x;
                 cin >> x;
