@@ -21,41 +21,24 @@ unordered_set<string> instructions = {"NOP","NOT","JZ","JNZ","JE","JNE","JA","JA
 unordered_set<string> directives ={"DW","DB"}; // A set containing the string values of all possible directives supported by the processor
 
 /* Function declarations */
-bool initializeTokens(ifstream& inFile);
-bool decimal(string st, int& a);
-int fetchValue(string varName);
-void updateRegisters(string changedRegister);
-bool mov(int instructionNum);
-bool checkSyntax(string& instruction, int& i);
-bool push(int instructionNum);
-vector<int> lineNumber;
-bool decimal(string st, int& a);
-int a;
-bool sub(int instructionNum);
-bool andf(int instructionNum);
-void toUpperCase(string& token);
-unsigned int arithmeticUnit(int a, int b, string  operation, char type);
-unsigned int arithmeticUnit(unsigned int a, string operation, char type);
+bool initializeTokens(ifstream& inFile); // Reads the input file and tokenizes it
+bool decimal(string st, int& a); // Takes a string and writes it's decimal value to a parameter integer, returns false if the string is an invalid number
+int fetchValue(string varName); // Takes a variable name as a string and returns it's value from the memory
+void updateRegisters(string changedRegister); // Updates the values of registers depending on the register last changed
+bool mov(int instructionNum); // Executes mov command
+bool checkSyntax(string& instruction, int& i); // Does some basic syntax checking during tokenization
+bool push(int instructionNum); // Executes push command
+bool pop(int instructionNum); // Executes pop command
+vector<int> lineNumber; // Stores the line number of each token
+bool sub(int instructionNum); // Executes sub instruction
+bool andf(int instructionNum); // Executes and instruction
+void toUpperCase(string& token); // Turns a string uppercase
+unsigned int arithmeticUnit(int a,int b, string  operation, char type); // Performs arithmetic operations on two operands
+unsigned int arithmeticUnit(unsigned int a, string operation, char type); // Performs arithmetic operations on single operand
 
 int main() {
     /* Here we are initializing our registers and flags */
     // 8 bit registers
-   /* int a= (unsigned short) 3;
-    cout<<a<<endl;
-    cout<<((2<<15) -1)<<endl;
-    cout<< decimal("-1", a)<<endl;
-    cout<<a<<endl;
-    a= (unsigned short) a;
-    cout<<a<< endl;
-    */
- /*  string a= "123'Bd'jdkf12JDJNKlLo123";
-   string b= "\"a\"";
-   toUpperCase(a);
-   toUpperCase(b);
-   cout<<a<<endl;
-   cout<<b<<endl; */
- int val=-1;
-
     registers["AH"] = make_pair(0, 255);
     registers["AL"] = make_pair(0, 255);
     registers["BH"] = make_pair(0, 255);
@@ -75,18 +58,19 @@ int main() {
     registers["BP"] = make_pair(0, 65535);
     // flags
     flags["ZF"] = 0; flags["AF"] = 0; flags["CF"] = 0; flags["SF"] = 0; flags["0F"] = 0;
-
     /* Following code parses the input program and loads it into memory using the initializeTokens function */
     ifstream inFile;
     inFile.open("../test.txt");
     initializeTokens(inFile);
-
+    //   Following code prints out the state of the processor to the standard output
     for(auto iter= tokens.begin(); iter!=tokens.end(); iter++) {
-        cout<<*iter<<endl;
+        cout<<*iter<< " ";
     }
+    cout << endl;
 
-  //   Following code prints out the state of the processor to the standard output
-   cout << "Memory\n";
+    arithmeticUnit(53,91, "ADD", 'B');
+
+    cout << "Memory\n";
     for (int i=0; i<40; i++) {
         cout << memory[i] << " ";
     }
@@ -111,7 +95,6 @@ int main() {
     }
     cout << "\nFlags\n";
     cout << "ZF = " << flags["ZF"] << " AF = " << flags["AF"]<<" CF = "<< flags["CF"] <<" SF = " << flags["SF"] << " OF = " << flags["OF"];
-
 }
 
 bool initializeTokens(ifstream& inFile) { // Function to read the input program, write the tokens to the tokens vector and initialize memory
@@ -124,7 +107,6 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
             size_t prev = 0, pos;
             bool instructionEncountered= false;
             while ((pos = line.find_first_of(" ,", prev)) != string::npos) {
-
                 if (pos > prev) {
                     //add token Upper Case converter
                   string tokenFounded= line.substr(prev, pos - prev);
@@ -169,7 +151,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                 curPos++;
             }
         }
-            // if the token is a label encode the memory location it refers to
+        // if the token is a label encode the memory location it refers to
         else if (curToken.back() == ':') {
             curToken.pop_back();
             labels[curToken] = curPos;
@@ -181,6 +163,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
             string varValue = tokens[i + 1];
             int value;
             variables[varName] = make_pair(curPos, curToken);
+            // if variable value is a number
             if (decimal(varValue, value)) {
                 if (curToken == "DB") {
                     if (value > 255) {
@@ -200,28 +183,35 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                     }
                 }
             }
-            else {
-             int value;
-              if(!decimal(varValue, value)) return false;
-              value= (unsigned short) value;
+            // if variable value is a character
+            else if (varValue.length() == 3 && varValue.front() == 39 && varValue.back() == 39) {
+                value = varValue.at(1);
                 if (curToken == "DB") {
-                    memory[curPos++] = value;
-                }
-                else if (curToken == "DW") {
-                    if (value > 65535) {
+                    if (value > 255) {
+                        cout << "Overflow";
                         return false;
+                    } else {
+                        memory[curPos++] = value;
                     }
-                    else {
+                }
+                if (curToken == "DW") {
+                    if (value > 65535) {
+                        cout << "Overflow";
+                        return false;
+                    } else {
                         memory[curPos++] = value & 0xff;
                         memory[curPos++] = (value >> 8) & 0xff;
                     }
                 }
             }
+            else {
+                cout << "Invalid variable initialization. Must be a character or a number.";
+                return false;
+            }
         }
     }
     return true;
 }
-
 
 bool decimal(string st, int& a) {
     if ((st.front()!='-'&&(st.front() < '0' || st.front() > '9'))||(st.front()=='-'&&(st.at(1)<'0'||st.at(1)>'9'))) return false;
@@ -239,8 +229,6 @@ bool decimal(string st, int& a) {
         a=  stoi(st);
         return true;
     }
-
-    cout<<"The number specification is invalid!";
     return false;
 }
 
@@ -250,9 +238,7 @@ int fetchValue(string varName) {
         return memory[address];
     }
     else {
-        int value = memory[address];
-        value += memory[address+1]*256;  //may be the source of an error
-        return value;
+        return memory[address] + memory[address+1]*256;
     }
 }
 
@@ -292,9 +278,10 @@ bool mov(int instructionNum) {
         int value;
         if (decimal(source, value)) {
             if(value<0) {
-                if(value< -registers[destination].second) {cout<<"Overflow"<<endl;
+                if(value< -registers[destination].second) {
+                    cout<<"Overflow"<<endl;
                     return false; }
-                value+= (registers[destination].second+1);
+                value+=(registers[destination].second+1);
             }
             if (registers[destination].second < value) {
                 cout << "Overflow";
@@ -322,9 +309,8 @@ bool mov(int instructionNum) {
                 registers[destination].first = value;
             }
         }
-            // case where source i cout << "Overflow";s the contents of another register
+        // case where source is the contents of another register
         else if (registers.find(source) != registers.end()) {
-
             if (registers[destination].second != registers[source].second) {
                 cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
                 return false;
@@ -333,7 +319,7 @@ bool mov(int instructionNum) {
                 registers[destination].first = registers[source].first;
             }
         }
-            // case where the source is the contents of a memory offset pointed by a register
+        // case where the source is the contents of a memory offset pointed by a register
         else if (source.size() == 5 && source.at(1) == '[' && source.at(4) == ']') {
             string registerName = source.substr(2,2);
             if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
@@ -355,16 +341,16 @@ bool mov(int instructionNum) {
                         return false;
                     }
                     else {
-                        registers[destination].first = memory[registers[registerName].first]+ memory[registers[registerName].first + 1] * 256 ;
+                        registers[destination].first = memory[registers[registerName].first]+ memory[registers[registerName].first + 1] * 256;
                     }
                 }
             }
-            else {
-                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+            else if (!decimal(registerName, value)) {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << " Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
                 return false;
             }
         }
-            // case where the source is the contents of a memory offset
+        // case where the source is the contents of a memory offset
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
             char type = source.front();
             if (type == 'B') {
@@ -391,26 +377,25 @@ bool mov(int instructionNum) {
                         return false;
                     }
                     else {
-                        registers[destination].first = memory[value]+ memory[value+1]*256;
+                        registers[destination].first = memory[value] + memory[value+1]*256;
                     }
                 }
                 else {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Incorrect memory address";
                     return false;
                 }
             }
         }
-            //case where the source is a variable
+        // case where the source is a variable
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
-
             if(source=="B"||source=="W") {
-                string  newSource= tokens[instructionNum+3];
+                string  newSource = tokens[instructionNum+3];
                 if(variables.find(newSource)==variables.end()) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "after B OR W You should put valid variable ";
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B OR W You should put valid variable ";
                     return false;
                 }
                 if ((variables[newSource].second=="DB"&&source=="W")||(variables[newSource].second=="DW"&&source=="B")) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
+                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be B, after W your variable type should be W";
                     return false;
                 }
                 source=newSource;
@@ -437,10 +422,10 @@ bool mov(int instructionNum) {
         }
         updateRegisters(destination);
     }
-        // cases where destination is a memory location
+    // cases where destination is a memory location
     else if ((destination.size()>1)&& destination.at(1) == '[' && destination.back() == ']') {
         if(destination.size()<4) {
-            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for MOV operation";
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " Incorrect operand for MOV operation";
         }
         string val = destination.substr(2, destination.length()-3);
         int value;
@@ -488,7 +473,7 @@ bool mov(int instructionNum) {
                 memory[value+1] = (constant >> 8) & 0xff;
             }
         }
-            // if source is the contents of a register
+        // if source is the contents of a register
         else if (registers.find(source) != registers.end()) {
             constant = registers[source].first;
             if (type == 'B' ) {
@@ -505,8 +490,7 @@ bool mov(int instructionNum) {
                 memory[value+1] = (constant >> 8) & 0xff;
             }
         }
-            //-----
-            // case where the source is the contents of a memory offset pointed by a register
+        // case where the source is the contents of a memory offset pointed by a register
         else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']') {
             string registerName = source.substr(2,2);
             if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
@@ -542,9 +526,7 @@ bool mov(int instructionNum) {
                 return false;
             }
         }
-            //------
-            //------
-            // case where the source is the contents of a memory offset
+        // case where the source is the contents of a memory offset
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
             char sourceType = source.front();
             if (sourceType == 'B') {
@@ -558,7 +540,7 @@ bool mov(int instructionNum) {
                     memory[value] = memory[index];
                 }
                 else {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
+                    cout <<"Error at line:"<< lineNumber[instructionNum] << "Incorrect memory address";
                     return false;
                 }
             }
@@ -582,9 +564,8 @@ bool mov(int instructionNum) {
             }
         }
 
-            //if source is variable
+        //if source is variable
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
-
             if(source=="B"||source=="W") {
                 string  newSource= tokens[instructionNum+3];
                 if(variables.find(newSource)==variables.end()) {
@@ -615,19 +596,19 @@ bool mov(int instructionNum) {
 
             }
         }
-
         else {
             cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation";
             return false;
         }
     }
+    // case where the destination is a variable
     else if(destination=="B"||destination=="W"||variables.find(destination)!=variables.end()) {
         if(destination=="B"||destination=="W") {
             string type= destination;
             destination= source;
             source= tokens[op2+1];
             if(variables.find(destination)==variables.end()) {
-                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation, after B or W, there should be a variable";
+                cout <<"Error at line:"<<lineNumber[instructionNum] << " Incorrect operand for mov operation, after B or W, there should be a variable";
             }
             if ((variables[destination].second=="DB"&&type=="W")||(variables[destination].second=="DW"&&destination=="B")) {
                 cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
@@ -638,7 +619,6 @@ bool mov(int instructionNum) {
         char type= variables[destination].second.back();
         int constant;
         int value= variables[destination].first;
-
         // if source is an immediate value
         if (decimal(source, constant)) {
             if (type == 'B') {
@@ -672,7 +652,7 @@ bool mov(int instructionNum) {
                 memory[value+1] = (constant >> 8) & 0xff;
             }
         }
-            //if the source is the contents of the register
+        //if the source is the contents of the register
         else if (registers.find(source) != registers.end()) {
             constant = registers[source].first;
             if (type == 'B' ) {
@@ -689,10 +669,11 @@ bool mov(int instructionNum) {
                 memory[value+1] = (constant >> 8) & 0xff;
             }
         }
-            //There may be problem --
-            // case where the source is the contents of a memory offset pointed by a register
+
+        // case where the source is the contents of a memory offset pointed by a register
         else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']') {
             string registerName = source.substr(2,2);
+            int temp;
             if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
                 char sourceType = source.front();
                 if(sourceType!='B'&&sourceType!='W') {
@@ -707,7 +688,6 @@ bool mov(int instructionNum) {
                     else{
                         memory[value] = memory[registers[registerName].first];
                     }
-
                 }
                 if (sourceType == 'W') {
                     if (type!=sourceType) {
@@ -721,12 +701,12 @@ bool mov(int instructionNum) {
                     }
                 }
             }
-            else {
+            else if (!decimal(registerName, temp)) {
                 cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
                 return false;
             }
         }
-            //case where the source contains a memory address
+        //case where the source contains a memory address
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
             char sourceType = source.front();
             if (sourceType == 'B') {
@@ -755,7 +735,6 @@ bool mov(int instructionNum) {
                     memory[value] = memory[index];
                     memory[value+1] = memory[index+1];
                 }
-
                 else {
                     cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
                     return false;
@@ -763,9 +742,7 @@ bool mov(int instructionNum) {
             }
         }
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
-
             if(source=="B"||source=="W") {
-                //there may be a problem below at indexing
                 string  newSource= tokens[instructionNum+3];
                 if(variables.find(newSource)==variables.end()) {
                     cout <<"Error at line:"<<lineNumber[instructionNum] << "after B OR W You should put valid variable ";
@@ -792,21 +769,16 @@ bool mov(int instructionNum) {
                 }
                 memory[value] = memory[variables[source].first];
                 memory[value+1] = memory[variables[source].first+1];
-
             }
         }
-
+        // to do: add cases where the source is offset and destination is a variable or memory location
         else {
             cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation";
             return false;
         }
-        
     }
-
     return true;
 }
-
-
 
 bool checkSyntax(string& instruction, int& i) { //offsets are not considered here, need to improve on those
     if (instruction == "NOP") return true;
@@ -904,13 +876,13 @@ bool push(int instructionNum) {
     // push the value of a register
     if (registers.find(operand)!= registers.end()) {
         if (registers[operand].second == 255) {
-            cout << "Expecting constant";
+            cout << "Cannot push single byte values to the stack in A86";
             return false;
         }
         else {
-            memory[registers["SP"].first] = registers[operand].first & 0xff;
-            memory[registers["SP"].first-1]= (registers[operand].first >> 8) & 0xff;
             registers["SP"].first-=2;
+            memory[registers["SP"].first] = registers[operand].first & 0xff;
+            memory[registers["SP"].first+1]= (registers[operand].first >> 8) & 0xff;
             return true;
         }
     }
@@ -921,16 +893,16 @@ bool push(int instructionNum) {
             cout << "Overflow";
             return false;
         }
-        memory[registers["SP"].first] = value & 0xff;
-        memory[registers["SP"].first-1]= (value >> 8) & 0xff;
         registers["SP"].first-=2;
+        memory[registers["SP"].first] = value & 0xff;
+        memory[registers["SP"].first+1]= (value >> 8) & 0xff;
         return true;
     }
     else if (operand.front() == 39 && operand.back() == 39 && operand.length() == 3) {
         value = operand.at(1);
-        memory[registers["SP"].first] = value & 0xff;
-        memory[registers["SP"].first-1]= (value >> 8) & 0xff;
         registers["SP"].first-=2;
+        memory[registers["SP"].first] = value & 0xff;
+        memory[registers["SP"].first+1]= (value >> 8) & 0xff;
         return true;
     }
     else if (variables.find(operand) != variables.end()) {
@@ -939,9 +911,9 @@ bool push(int instructionNum) {
             return false;
         }
         value = fetchValue(operand);
-        memory[registers["SP"].first] = value & 0xff;
-        memory[registers["SP"].first-1]= (value >> 8) & 0xff;
         registers["SP"].first-=2;
+        memory[registers["SP"].first] = value & 0xff;
+        memory[registers["SP"].first+1]= (value >> 8) & 0xff;
         return true;
     }
     // push an address of a variable to the stack
@@ -952,9 +924,9 @@ bool push(int instructionNum) {
             return false;
         }
         value = variables[varName].first;
-        memory[registers["SP"].first] = value & 0xff;
-        memory[registers["SP"].first-1]= (value >> 8) & 0xff;
         registers["SP"].first-=2;
+        memory[registers["SP"].first] = value & 0xff;
+        memory[registers["SP"].first+1]= (value >> 8) & 0xff;
         return true;
     }
     // push the value at a memory location to the stack
@@ -967,18 +939,18 @@ bool push(int instructionNum) {
             string val = operand.substr(2,operand.length()-3);
             // number indexing
             if (decimal(val, value)) {
-                memory[registers["SP"].first] = memory[value];
-                memory[registers["SP"].first-1] = memory[value+1];
                 registers["SP"].first-=2;
+                memory[registers["SP"].first] = memory[value];
+                memory[registers["SP"].first+1] = memory[value+1];
                 return true;
             }
             // register indexing
             else if (registers.find(operand.substr(2,operand.length()-3)) != registers.end()) {
                 if (val == "SI" || val == "DI" || val == "BX" || val == "BP") {
                     value = registers[val].first;
-                    memory[registers["SP"].first] = memory[value];
-                    memory[registers["SP"].first-1] = memory[value+1];
                     registers["SP"].first-=2;
+                    memory[registers["SP"].first] = memory[value];
+                    memory[registers["SP"].first+1] = memory[value+1];
                     return true;
                 }
                 else {
@@ -1001,13 +973,13 @@ bool push(int instructionNum) {
         }
         else {
             value = fetchValue(var);
-            memory[registers["SP"].first] = value & 0xff;
-            memory[registers["SP"].first-1]= (value >> 8) & 0xff;
             registers["SP"].first-=2;
+            memory[registers["SP"].first] = value & 0xff;
+            memory[registers["SP"].first+1]= (value >> 8) & 0xff;
             return true;
         }
     }
-    cout << "Invalid syntax";
+    cout << "Invalid syntax " << "Line: " << lineNumber[instructionNum];
     return false;
 }
 
@@ -1020,9 +992,12 @@ bool pop(int instructionNum) {
             return false;
         }
         else {
-            registers[operand].first = memory[registers["SP"].first] << 8;
-            registers[operand].first += (memory[registers["SP"].first+1]);
+            registers[operand].first = memory[registers["SP"].first];
+            registers[operand].first += (memory[registers["SP"].first+1]<<8);
+            memory[registers["SP"].first] = -1;
+            memory[registers["SP"].first+1] = -1;
             registers["SP"].first+=2;
+            updateRegisters(operand);
             return true;
         }
     }
@@ -1034,8 +1009,10 @@ bool pop(int instructionNum) {
         }
         else {
             int address = variables[operand].first;
-            memory[address] = memory[registers["SP"].first+1];
-            memory[address+1] = memory[registers["SP"].first];
+            memory[address] = memory[registers["SP"].first];
+            memory[address+1] = memory[registers["SP"].first+1];
+            memory[registers["SP"].first] = -1;
+            memory[registers["SP"].first+1] = -1;
             registers["SP"].first+=2;
             return true;
         }
@@ -1051,17 +1028,21 @@ bool pop(int instructionNum) {
             string val = operand.substr(2,operand.length()-3);
             // number indexing
             if (decimal(val, address)) {
-                memory[address] = memory[registers["SP"].first+1];
-                memory[address+1] = memory[registers["SP"].first];
+                memory[address] = memory[registers["SP"].first];
+                memory[address+1] = memory[registers["SP"].first+1];
+                memory[registers["SP"].first] = -1;
+                memory[registers["SP"].first+1] = -1;
                 registers["SP"].first+=2;
                 return true;
             }
-                // register indexing
+            // register indexing
             else if (registers.find(operand.substr(2,operand.length()-3)) != registers.end()) {
                 if (val == "SI" || val == "DI" || val == "BX" || val == "BP") {
                     address = registers[val].first;
-                    memory[address] = memory[registers["SP"].first+1];
-                    memory[address+1] = memory[registers["SP"].first];
+                    memory[address] = memory[registers["SP"].first];
+                    memory[address+1] = memory[registers["SP"].first+1];
+                    memory[registers["SP"].first] = -1;
+                    memory[registers["SP"].first+1] = -1;
                     registers["SP"].first+=2;
                     return true;
                 }
@@ -1073,26 +1054,27 @@ bool pop(int instructionNum) {
         }
     }
     // pop into a variable with type indicator
-
     else if (operand == "B") {
-        cout << "Single byte values cannot be pushed onto the stack in A86.";
+        cout << "Line: " << lineNumber[instructionNum] << "Single byte values cannot be pushed onto the stack in A86.";
         return false;
     }
     else if (operand == "W") {
         string var = tokens[instructionNum+2];
         if (variables.find(var) == variables.end()) {
-            cout << "Invalid mnemonic";
+            cout << "Line: " << lineNumber[instructionNum] << "Invalid mnemonic";
             return false;
         }
         else {
             int address = variables[var].first;
-            memory[address] = memory[registers["SP"].first+1];
-            memory[address+1] = memory[registers["SP"].first];
+            memory[address] = memory[registers["SP"].first];
+            memory[address+1] = memory[registers["SP"].first+1];
+            memory[registers["SP"].first] = -1;
+            memory[registers["SP"].first+1] = -1;
             registers["SP"].first+=2;
             return true;
         }
     }
-    cout << "Invalid syntax";
+    cout << "Line: " << lineNumber[instructionNum] << " Invalid syntax";
     return false;
 }
 
@@ -1107,8 +1089,8 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             else {
                 flags["CF"] = 0;
             }
-            int leftmostbit_op1 = (1 << 7) & op1;
-            int leftmostbit_op2 = (1 << 7) & op2;
+            int leftmostbit_op1 = (1 << 7) & a;
+            int leftmostbit_op2 = (1 << 7) & b;
             int result = (a+b) & 0xFF;
             int leftmostbit_result = (1<<7) & result;
             if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
@@ -1179,7 +1161,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             }
             int leftmostbit_op1 = (1 << 7) & op1;
             int leftmostbit_op2 = (1 << 7) & op2;
-            int result = (a-b) & 0xFF;
+            int result = ((unsigned int)(a-b)) & 0xFF;
             int leftmostbit_result = (1<<7) & result;
             if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
                 flags["OF"] = 1;
@@ -1350,7 +1332,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             if (count == 1) {
                 flags["OF"] = singlebyte & (1 << 7);
             }
-            int leftmostbit_result = (1<<15) & result;
+            int leftmostbit_result = (1<<7) & result;
             flags["SF"] = leftmostbit_result;
             if (result == 0) {
                 flags["ZF"] = 1;
@@ -1397,9 +1379,9 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
                 flags["CF"] = result & (1<<7);
             }
             result = result << 1;
-            int leftmostbit_result = (1<<15) & result;
+            int leftmostbit_result = (1<<7) & result;
             if (count == 1) {
-                flags["OF"] = leftmostbit_result == flags["CF"];
+                flags["OF"] = leftmostbit_result != flags["CF"];
             }
             flags["SF"] = leftmostbit_result;
             if (result == 0) {
@@ -1418,13 +1400,13 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             }
             unsigned int result = twobytes << count-1;
             if (count < 16) {
-                flags["CF"] = result & 1;
+                flags["CF"] = result & (1<<15);
             }
             result = result << 1;
-            if (count == 1) {
-                flags["OF"] = twobytes & (1 << 15);
-            }
             int leftmostbit_result = (1<<15) & result;
+            if (count == 1) {
+                flags["OF"] = leftmostbit_result != flags["CF"];
+            }
             flags["SF"] = leftmostbit_result;
             if (result == 0) {
                 flags["ZF"] = 1;
@@ -1503,6 +1485,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             return result;
         }
     }
+    // to do: test the rotation and shifts
 }
 
 unsigned int arithmeticUnit(unsigned int a, string operation, char type) {
@@ -1515,10 +1498,10 @@ unsigned int arithmeticUnit(unsigned int a, string operation, char type) {
             return result;
         }
         if (type == 'W') {
-            unsigned char val1 = registers["AX"].first;
-            unsigned char val2 = a;
+            unsigned short int val1 = registers["AX"].first;
+            unsigned short int val2 = a;
             unsigned int result = val1 * val2;
-            flags["CF"] = flags["OF"] = ((result >> 16) & 0xFF) != 0;
+            flags["CF"] = flags["OF"] = ((result >> 16) & 0xFFFF) != 0;
             return result;
         }
     }
@@ -1531,7 +1514,6 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
     int op2= instructionNum+2;
     string destination = tokens[op1];
     string source = tokens[op2];
-
     // cases where destination is a register
     if (registers.find(destination) != registers.end()) {
         // case where source is an immediate value
@@ -1547,12 +1529,12 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         if (decimal(source, value)) {
             if(value<0) {
                 if(value< -registers[destination].second) {
-                    cout<<"Overflow"<<endl;
+                    cout<<"Line: " << lineNumber[instructionNum] << "Overflow"<<endl;
                     return false; }
                 value+= (registers[destination].second+1);
             }
             if (registers[destination].second < value) {
-                cout << "Overflow";
+                cout <<"Line: " << lineNumber[instructionNum] << "Overflow";
                 return false;
             }
             else {
@@ -1582,7 +1564,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 else arithmeticUnit(val1, value, operation, optype);
             }
         }
-            // case where source is the contents of another register
+        // case where source is the contents of another register
         else if (registers.find(source) != registers.end()) {
             if (registers[destination].second != registers[source].second) {
                 cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
@@ -1594,7 +1576,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 else  arithmeticUnit(val1, value, operation, optype);
             }
         }
-            // case where the source is the contents of a memory offset pointed by a register
+        // case where the source is the contents of a memory offset pointed by a register
         else if (source.size() == 5 && source.at(1) == '[' && source.at(4) == ']') {
             string registerName = source.substr(2,2);
             if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
@@ -1625,12 +1607,12 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     }
                 }
             }
-            else {
+            else if (!decimal(registerName,value)){
                 cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
                 return false;
             }
         }
-            // case where the source is the contents of a memory offset
+        // case where the source is the contents of a memory offset
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
             char type = source.front();
             if (type == 'B') {
@@ -1670,7 +1652,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
             }
         }
-            //case where the source is a variable
+        //case where the source is a variable
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
             if(source=="B"||source=="W") {
                 string  newSource= tokens[instructionNum+3];
@@ -1711,7 +1693,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         if(operation!="CMP")
             updateRegisters(destination);
     }
-        // cases where destination is a memory location
+    // cases where destination is a memory location
     else if ((destination.size()>1)&& destination.at(1) == '[' && destination.back() == ']') {
         int val1;
         char optype;
@@ -1786,7 +1768,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
             }
         }
-            // if source is the contents of a register
+        // if source is the contents of a register
         else if (registers.find(source) != registers.end()) {
             value = registers[source].first;
             if (optype == 'B' ) {
@@ -1807,7 +1789,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
             }
         }
-            // case where the source is the contents of a memory offset pointed by a register
+        // case where the source is the contents of a memory offset pointed by a register
         else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']') {
             string registerName = source.substr(2,2);
             if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
@@ -1842,12 +1824,12 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                     }
                 }
             }
-            else {
+            else if (!decimal(registerName, value)) {
                 cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
                 return false;
             }
         }
-            // case where the source is the contents of a memory offset
+        // case where the source is the contents of a memory offset
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
             char sourceType = source.front();
             if (sourceType == 'B') {
@@ -1890,8 +1872,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
             }
         }
-
-            //if source is variable
+        //if source is variable
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
             if(source=="B"||source=="W") {
                 string  newSource= tokens[instructionNum+3];
@@ -1933,7 +1914,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             return false;
         }
     }
-        // destination is a variable
+    // destination is a variable
     else if(destination=="B"||destination=="W"||variables.find(destination)!=variables.end()) {
         if(destination=="B"||destination=="W") {
             string type= destination;
@@ -1999,7 +1980,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
             }
         }
-            //if the source is the contents of the register
+        //if the source is the contents of the register
         else if (registers.find(source) != registers.end()) {
             value = registers[source].first;
             if (optype == 'B' ) {
@@ -2020,8 +2001,6 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 }
             }
         }
-            //There may be problem --
-            // case where the source is the contents of a memory offset pointed by a register
         else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']'&&registers.find(source.substr(2,2))!=registers.end()) {
             string registerName = source.substr(2,2);
             if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
@@ -2062,7 +2041,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 return false;
             }
         }
-            //case where the source contains a memory address
+        //case where the source contains a memory address
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
             char sourceType = source.front();
             if (sourceType == 'B') {
@@ -2151,11 +2130,8 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
 bool singleOperandArithmetic(string& operation, int instructionNum) {
     int opNum= instructionNum+1;
     string operand= tokens[opNum];
-
     if(operation=="DIV") {
-
         if (registers.find(operand) != registers.end()) {
-
             if(registers[operand].second==255) {
                 unsigned  int divisor= registers[operand].first;
                 if(divisor==0) {
@@ -2172,7 +2148,6 @@ bool singleOperandArithmetic(string& operation, int instructionNum) {
                 registers["AH"].first=remainder;
                 updateRegisters("AL");
                 updateRegisters("AH");
-
             }
             else if(registers[operand].second==65535) {
                 unsigned int divisor= registers[operand].first;
@@ -2196,7 +2171,6 @@ bool singleOperandArithmetic(string& operation, int instructionNum) {
                 cout << "Error at line:" << lineNumber[instructionNum] << "Incorrect operand for DIV operation";
                 return false;
             }
-
             return true;
         }
         else if(operand=="W"||operand=="B"||variables.find(operand)!=variables.end()) {
@@ -2244,17 +2218,13 @@ bool singleOperandArithmetic(string& operation, int instructionNum) {
                 updateRegisters("AX");
                 updateRegisters("DX");
 
-
             }
             else {
                 cout << "Error at line:" << lineNumber[instructionNum] << "Incorrect operand for DIV operation";
-                return false;
-
-            }
+                return false;}
 
             return true;
         }
-            //possible error here, check that in the inner part there is a register
         else if((operand.size()==5) && operand.at(1) == '[' && operand.at(4) == ']'&& registers.find(operand.substr(2,2))!=registers.end() ) {
             char opType = operand.front();
             string registerName = operand.substr(2,2);
@@ -2372,7 +2342,7 @@ bool singleOperandArithmetic(string& operation, int instructionNum) {
             return true;
         }
         else {
-            cout << "Error at line:" << lineNumber[instructionNum] << "Incorrect operand for MUL operation";
+            cout << "Error at line:" << lineNumber[instructionNum] << "Incorrect operand for DIV operation";
             return false;
         }
 
@@ -2701,7 +2671,9 @@ bool interrupt(int instructionNum) {
                 registers["AL"].first = x;
                 cout << x;
                 updateRegisters("AL");
+                return true;
             }
         }
     }
+    return false;
 }
