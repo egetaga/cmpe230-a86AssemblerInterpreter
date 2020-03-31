@@ -1163,7 +1163,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             int leftmostbit_op2 = (1 << 7) & op2;
             int result = ((unsigned int)(a-b)) & 0xFF;
             int leftmostbit_result = (1<<7) & result;
-            if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
+            if (leftmostbit_op1 != leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
                 flags["OF"] = 1;
             }
             else {
@@ -1197,7 +1197,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             int leftmostbit_op2 = (1 << 15) & op2;
             int result = (a-b) & 0xFFFF;
             int leftmostbit_result = (1<<15) & result;
-            if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
+            if (leftmostbit_op1 != leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
                 flags["OF"] = 1;
             }
             else {
