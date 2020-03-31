@@ -2669,7 +2669,12 @@ bool interrupt(int instructionNum) {
                 char x;
                 cin >> x;
                 registers["AL"].first = x;
-                cout << x;
+                updateRegisters("AL");
+                return true;
+            }
+            if (registers["AH"].first == 2) {
+                char x;
+                cout << registers["DL"].first;z
                 updateRegisters("AL");
                 return true;
             }
