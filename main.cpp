@@ -38,13 +38,13 @@ unsigned int arithmeticUnit(unsigned int a, string operation, char type); // Per
 bool twoOperandArithmetic(string& operation, int instructionNum);
 bool singleOperandArithmetic(string& operation, int instructionNum);
 bool generalJump(string& op, int& index) ;
-bool interrupt(int instructionNum) ;
+bool execute(int memoryIndexLimit);
+bool interrupt(int instructionNum, int& finish);
 int main() {
     /* Here we are initializing our registers and flags */
     // 8 bit registers
 
-    int x= 73;
-    cout<<(char)x;
+
 
    registers["AH"] = make_pair(0, 255);
     registers["AL"] = make_pair(0, 255);
@@ -69,7 +69,15 @@ int main() {
     ifstream inFile;
     inFile.open("../test.txt");
     initializeTokens(inFile);
+    execute(instructionLim);
     //   Following code prints out the state of the processor to the standard output
+    cout<<endl;
+    cout<<"------------------------------------------------------------------"<<endl;
+    cout<<"------------------------------------------------------------------"<<endl;
+    cout<<"------------------------------------------------------------------"<<endl;
+    cout<<"------------------------------------------------------------------"<<endl;
+    cout<<"------------------------------------------------------------------"<<endl;
+
     for(auto iter= tokens.begin(); iter!=tokens.end(); iter++) {
         cout<<*iter<< " ";
     }
@@ -152,7 +160,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
         // if the token is an instruction, encode it to memory using 6 bytes, but first check whether it is syntatically true or not
         if (instructions.find(curToken) != instructions.end()) {
 
-            if(instructionLim==-1&&curToken=="INT"&& (i+1)<tokens.size()&&tokens[i+1]=="20H") instructionLim= i;
+            if(instructionLim==-1&&curToken=="INT"&& (i+1)<tokens.size()&&tokens[i+1]=="20H") instructionLim= (curPos+6);
 
             int posInTokens= i;
             if(!checkSyntax(curToken, i)) return false;
@@ -171,7 +179,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
         else if (directives.find(curToken) != directives.end()) {
             string varName = tokens[i - 1];
             string varValue = tokens[i + 1];
-            int value;
+           int value;
             variables[varName] = make_pair(curPos, curToken);
             // if variable value is a number
             if (decimal(varValue, value)) {
@@ -188,8 +196,8 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                         cout << "Overflow";
                         return false;
                     } else {
-                        memory[curPos++] = value & 0xff;
-                        memory[curPos++] = (value >> 8) & 0xff;
+                        memory[curPos++] = (unsigned short)value & 0xff;
+                        memory[curPos++] = (((unsigned short)value) >> 8u) & 0xff;
                     }
                 }
             }
@@ -230,7 +238,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
 bool execute(int memoryIndexLimit) {
     int memoryIndex=0;
 
-    while(memoryIndex<=(memoryIndexLimit + 5)) {
+    while(memoryIndex<=(memoryIndexLimit)) {
 
         int tokenIndex= memory[memoryIndex];
         string instruction= tokens[tokenIndex];
@@ -238,7 +246,10 @@ bool execute(int memoryIndexLimit) {
         if(instruction=="MOV"){
             if(!mov(tokenIndex)) return false;
         }
-        else if(instruction=="ADD"||instruction=="SUB"||instruction=="CMP"||instruction=="AND"||instruction=="OR"||instruction=="XOR"){
+        else if(instruction=="ADD") {
+            if(!twoOperandArithmetic(instruction, tokenIndex)) return false;
+        }
+        else if(instruction=="SUB"||instruction=="CMP"||instruction=="AND"||instruction=="OR"||instruction=="XOR"){
             if(!twoOperandArithmetic(instruction, tokenIndex)) return false;
 
         }
@@ -257,8 +268,9 @@ bool execute(int memoryIndexLimit) {
         }
         else if(instruction=="JZ"||instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||
         instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC"||instruction=="JC"	) {
+            int oldMem= memoryIndex;
             if(!generalJump(instruction, memoryIndex)) return false;
-            continue;
+            if(memoryIndex!=oldMem) continue;
         }
         else if(instruction=="INT") {
             string next= tokens[tokenIndex+1];
@@ -266,7 +278,10 @@ bool execute(int memoryIndexLimit) {
                 cout<<"Error at line "<< lineNumber[tokenIndex]<<"Only 20H and 21H is defined in this project "<<endl;
                 return false;
             }
-            interrupt(tokenIndex);
+            int a=-1;
+            if(!interrupt(tokenIndex,a)) return false;
+            if(a==0) return true;
+
         }
         else return false;
 
@@ -275,7 +290,7 @@ bool execute(int memoryIndexLimit) {
     }
 
 
-
+return true;
 
 
 
@@ -284,16 +299,16 @@ bool execute(int memoryIndexLimit) {
 
 bool decimal(string st, int& a) {
     if ((st.front()!='-'&&(st.front() < '0' || st.front() > '9'))||(st.front()=='-'&&(st.at(1)<'0'||st.at(1)>'9'))) return false;
-    if(st.back()=='h') {
+    if(st.back()=='H') {
         a= stoi(st, nullptr, 16);
         return true;
     }
-    if(st.back()=='b') {
+    if(st.back()=='B') {
         a=  stoi(st, nullptr, 2);
 
         return true;
     }
-    if(st.back()=='d'|| (('0'<=st.back())&&(st.back()<='9'))) {
+    if(st.back()=='D'|| (('0'<=st.back())&&(st.back()<='9'))) {
 
         a=  stoi(st);
         return true;
@@ -911,7 +926,7 @@ bool checkSyntax(string& instruction, int& i) { //offsets are not considered her
     }
     //controls instructions with one operand
  else  if(instruction=="PUSH"||instruction=="POP"||instruction=="NOT"||instruction=="MUL"||instruction=="DIV"||instruction=="JZ"||
-    instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||
+    instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||instruction=="JC"||
     instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC") {
 
         if((i+1)>=tokens.size()||instructions.find(tokens[i+1])!=instructions.end()|| tokens[i+1].back()==':'||tokens[i+1]=="DB"||tokens[i+1]=="DW" ) {
@@ -1327,7 +1342,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             flags["CF"] = 0;
             flags["0F"] = 0;
             flags["AF"] = 0;
-            int result = (a xor b) & 0xFF;
+            int result = (a ^ b) & 0xFF;
             int leftmostbit_result = (1<<7) & result;
             flags["SF"] = leftmostbit_result;
             if (result == 0) {
@@ -1342,7 +1357,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             flags["CF"] = 0;
             flags["0F"] = 0;
             flags["AF"] = 0;
-            int result = (a xor b) & 0xFFFF;
+            int result = (a ^ b) & 0xFFFF;
             int leftmostbit_result = (1<<15) & result;
             flags["SF"] = leftmostbit_result;
             if (result == 0) {
@@ -1359,7 +1374,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             flags["CF"] = 0;
             flags["0F"] = 0;
             flags["AF"] = 0;
-            int result = (a or b) & 0xFF;
+            int result = (a | b) & 0xFF;
             int leftmostbit_result = (1<<7) & result;
             flags["SF"] = leftmostbit_result;
             if (result == 0) {
@@ -1374,7 +1389,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             flags["CF"] = 0;
             flags["0F"] = 0;
             flags["AF"] = 0;
-            int result = (a or b) & 0xFFFF;
+            int result = (a | b) & 0xFFFF;
             int leftmostbit_result = (1<<15) & result;
             flags["SF"] = leftmostbit_result;
             if (result == 0) {
@@ -1589,7 +1604,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         int val1 = registers[destination].first;
         char optype;
         if (registers[destination].second == 255) {
-            optype == 'B';
+            optype = 'B';
         }
         else {
             optype = 'W';
@@ -1761,6 +1776,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         }
         if(operation!="CMP")
             updateRegisters(destination);
+
     }
     // cases where destination is a memory location
     else if ((destination.size()>1)&& destination.at(1) == '[' && destination.back() == ']') {
@@ -2727,12 +2743,12 @@ bool generalJump(string& op, int& index)  {
     return true;
 }
 
-bool interrupt(int instructionNum) {
+bool interrupt(int instructionNum, int& finish) {
     string operand = tokens[instructionNum+1];
     int value;
     if (decimal(operand, value)) {
         if (value == 0x20) {
-            exit (EXIT_SUCCESS);
+            return true;
         }
         else if (value == 0x21) {
             if (registers["AH"].first == 1) {
@@ -2744,7 +2760,7 @@ bool interrupt(int instructionNum) {
             }
             if (registers["AH"].first == 2) {
                 cout << (char) registers["DL"].first;
-                updateRegisters("AL");
+                registers["AL"].first=registers["DL"].first;
                 return true;
             }
         }
