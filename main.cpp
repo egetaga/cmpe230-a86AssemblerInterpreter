@@ -153,6 +153,23 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
             lineNum++;
         }
     }
+    //the world's most ineffective code
+    for(int i=0; i<=tokens.size(); i++) {
+     string token= tokens[i];
+     if(token=="INC") {
+         tokens[i]="ADD";
+         tokens.insert(tokens.begin() + (i+2), "1");
+         lineNumber.insert(lineNumber.begin()+(i+2), lineNumber[i+1] );
+
+     }
+     else if(token=="DEC") {
+        tokens[i]="SUB";
+        tokens.insert(tokens.begin()+(i+2), "1");
+        lineNumber.insert(lineNumber.begin()+ (i+2), lineNumber[i+1]);
+
+     }
+
+    }
     // loads the program into memory
     int curPos = 0;
     for (int i = 0; i < tokens.size(); i++) {
