@@ -19,7 +19,7 @@ unordered_map<string, bool> flags; // A map that links the names of the flags to
 unordered_set<string> instructions = {"NOP","NOT","JZ","JNZ","JE","JNE","JA","JAE","JB","JBE","JNAE","JNB","JNBE","JNC","JC","PUSH","POP","INT","MOV","ADD","SUB","MUL"
         ,"DIV","XOR","OR","AND","RCL","RCR","SHL","SHR"}; // A set containing the string values of all possible instructions supported by the processor
 unordered_set<string> directives ={"DW","DB"}; // A set containing the string values of all possible directives supported by the processor
-
+int instructionLim=-1;
 /* Function declarations */
 bool initializeTokens(ifstream& inFile); // Reads the input file and tokenizes it
 bool decimal(string st, int& a); // Takes a string and writes it's decimal value to a parameter integer, returns false if the string is an invalid number
@@ -35,11 +35,18 @@ bool andf(int instructionNum); // Executes and instruction
 void toUpperCase(string& token); // Turns a string uppercase
 unsigned int arithmeticUnit(int a,int b, string  operation, char type); // Performs arithmetic operations on two operands
 unsigned int arithmeticUnit(unsigned int a, string operation, char type); // Performs arithmetic operations on single operand
-
+bool twoOperandArithmetic(string& operation, int instructionNum);
+bool singleOperandArithmetic(string& operation, int instructionNum);
+bool generalJump(string& op, int& index) ;
+bool interrupt(int instructionNum) ;
 int main() {
     /* Here we are initializing our registers and flags */
     // 8 bit registers
-    registers["AH"] = make_pair(0, 255);
+
+    int x= 73;
+    cout<<(char)x;
+
+   registers["AH"] = make_pair(0, 255);
     registers["AL"] = make_pair(0, 255);
     registers["BH"] = make_pair(0, 255);
     registers["BL"] = make_pair(0, 255);
@@ -58,7 +65,7 @@ int main() {
     registers["BP"] = make_pair(0, 65535);
     // flags
     flags["ZF"] = 0; flags["AF"] = 0; flags["CF"] = 0; flags["SF"] = 0; flags["0F"] = 0;
-    /* Following code parses the input program and loads it into memory using the initializeTokens function */
+    // Following code parses the input program and loads it into memory using the initializeTokens function
     ifstream inFile;
     inFile.open("../test.txt");
     initializeTokens(inFile);
@@ -144,6 +151,9 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
         string curToken = tokens[i];
         // if the token is an instruction, encode it to memory using 6 bytes, but first check whether it is syntatically true or not
         if (instructions.find(curToken) != instructions.end()) {
+
+            if(instructionLim==-1&&curToken=="INT"&& (i+1)<tokens.size()&&tokens[i+1]=="20H") instructionLim= i;
+
             int posInTokens= i;
             if(!checkSyntax(curToken, i)) return false;
             for (int j = 0; j < 6; j++) {
@@ -210,8 +220,67 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
             }
         }
     }
+    if(instructionLim==-1) {
+        cout<<"Program must end with INT 20H"<<endl;
+        return false;
+    }
     return true;
 }
+
+bool execute(int memoryIndexLimit) {
+    int memoryIndex=0;
+
+    while(memoryIndex<=(memoryIndexLimit + 5)) {
+
+        int tokenIndex= memory[memoryIndex];
+        string instruction= tokens[tokenIndex];
+
+        if(instruction=="MOV"){
+            if(!mov(tokenIndex)) return false;
+        }
+        else if(instruction=="ADD"||instruction=="SUB"||instruction=="CMP"||instruction=="AND"||instruction=="OR"||instruction=="XOR"){
+            if(!twoOperandArithmetic(instruction, tokenIndex)) return false;
+
+        }
+        else if(instruction=="RCL"||instruction=="RCR"||instruction=="SHL"||instruction=="SHR") {
+            if(!twoOperandArithmetic(instruction, tokenIndex)) return false;
+        }
+        else if(instruction=="MUL"||instruction=="DIV"||instruction=="NOT") {
+            if(!singleOperandArithmetic(instruction, tokenIndex)) return false;
+        }
+        else if(instruction=="PUSH") {
+            if(!push(tokenIndex)) return false;
+
+        }
+        else if(instruction=="POP") {
+            if(!pop(tokenIndex)) return false;
+        }
+        else if(instruction=="JZ"||instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||
+        instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC"||instruction=="JC"	) {
+            if(!generalJump(instruction, memoryIndex)) return false;
+            continue;
+        }
+        else if(instruction=="INT") {
+            string next= tokens[tokenIndex+1];
+            if(next!="20H"&&next!="21H") {
+                cout<<"Error at line "<< lineNumber[tokenIndex]<<"Only 20H and 21H is defined in this project "<<endl;
+                return false;
+            }
+            interrupt(tokenIndex);
+        }
+        else return false;
+
+    memoryIndex+=6;
+
+    }
+
+
+
+
+
+
+}
+
 
 bool decimal(string st, int& a) {
     if ((st.front()!='-'&&(st.front() < '0' || st.front() > '9'))||(st.front()=='-'&&(st.at(1)<'0'||st.at(1)>'9'))) return false;
@@ -2599,13 +2668,14 @@ bool singleOperandArithmetic(string& operation, int instructionNum) {
 bool jmp(int& index) {
     //I assumed, this index is the index of
     int instructionNum= index;
-    string token= tokens[index];
-    string label= tokens[index+1];
+    string token= tokens[memory[index]];
+    string label= tokens[memory[index]+1];
     if(labels.find(label)==labels.end()) {
         cout << "Error at line:" << lineNumber[instructionNum] << "There is no label as "<<label;
         return false;
     }
     index= labels[label];
+    return true;
 }
 bool generalJump(string& op, int& index)  {
     int instructionNum= index;
@@ -2673,8 +2743,7 @@ bool interrupt(int instructionNum) {
                 return true;
             }
             if (registers["AH"].first == 2) {
-                char x;
-                cout << registers["DL"].first;z
+                cout << (char) registers["DL"].first;
                 updateRegisters("AL");
                 return true;
             }
