@@ -40,6 +40,7 @@ bool singleOperandArithmetic(string& operation, int instructionNum);
 bool generalJump(string& op, int& index) ;
 bool execute(int memoryIndexLimit);
 bool interrupt(int instructionNum, int& finish);
+bool stringFixer(string& op1, string& op2);
 int main() {
     /* Here we are initializing our registers and flags */
     // 8 bit registers
@@ -2779,6 +2780,52 @@ bool interrupt(int instructionNum, int& finish) {
                 cout << (char) registers["DL"].first;
                 registers["AL"].first=registers["DL"].first;
                 return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool stringFixer(string& op1, string& op2) {
+    if (op1.front() == '[' && op1.back() == ']') {
+        if (op2.front() == '[' && op2.back() == ']') {
+            cout << "Incorrect operands";
+            return false;
+        }
+        int val;
+        if (variables.find(op2) != variables.end()) {
+            op1.insert(0, 1,variables[op2].second.back());
+        }
+        else if (registers.find(op2) != registers.end()) {
+            if (registers[op2].second == 255) {
+                op1.insert(0, 1,'B');
+            }
+            else {
+                op1.insert(0, 1,'W');
+            }
+        }
+        else if (op2 == "OFFSET") {
+            op1.insert(0, 1,'W');
+        }
+        else if (decimal(op2, val)) {
+            if (val < 256 && val > -256) {
+                cout << "Byte or Word?";
+                return false;
+            }
+            op1.insert(0, 1, 'W');
+        }
+    }
+    else if (op2.front() == '[' && op2.back() == ']') {
+        int val;
+        if (variables.find(op1) != variables.end()) {
+            op2.insert(0, 1,variables[op1].second.back());
+        }
+        else if (registers.find(op1) != registers.end()) {
+            if (registers[op1].second == 255) {
+                op2.insert(0, 1,'B');
+            }
+            else {
+                op2.insert(0, 1,'W');
             }
         }
     }
