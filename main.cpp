@@ -44,10 +44,7 @@ bool stringFixer(string& op1, string& op2);
 int main() {
     /* Here we are initializing our registers and flags */
     // 8 bit registers
-
-
-
-   registers["AH"] = make_pair(0, 255);
+    registers["AH"] = make_pair(0, 255);
     registers["AL"] = make_pair(0, 255);
     registers["BH"] = make_pair(0, 255);
     registers["BL"] = make_pair(0, 255);
@@ -84,7 +81,6 @@ int main() {
     }
     cout << endl;
 
-    arithmeticUnit(53,91, "ADD", 'B');
 
     cout << "Memory\n";
     for (int i=0; i<40; i++) {
@@ -374,6 +370,7 @@ bool mov(int instructionNum) {
     int op2= instructionNum+2;
     string destination = tokens[op1];
     string source = tokens[op2];
+    stringFixer(destination, source);
     // cases where destination is a register
     if (registers.find(destination) != registers.end()) {
         // case where source is an immediate value
@@ -1587,6 +1584,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             return result;
         }
     }
+    return false;
     // to do: test the rotation and shifts
 }
 
@@ -1610,12 +1608,14 @@ unsigned int arithmeticUnit(unsigned int a, string operation, char type) {
     if (operation == "NOT") {
         return ~a;
     }
+    return 0;
 }
 bool twoOperandArithmetic(string& operation, int instructionNum) {
     int op1= instructionNum+1;
     int op2= instructionNum+2;
     string destination = tokens[op1];
     string source = tokens[op2];
+    stringFixer(destination, source);
     // cases where destination is a register
     if (registers.find(destination) != registers.end()) {
         // case where source is an immediate value
