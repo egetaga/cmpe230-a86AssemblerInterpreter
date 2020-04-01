@@ -17,7 +17,7 @@ unordered_map<string, pair<int, string>> variables; // A map that links the name
 unordered_map<string, pair<int, int>> registers; // A map that links the names of the registers to a pair of their value and size in integers
 unordered_map<string, bool> flags; // A map that links the names of the flags to their boolean value
 unordered_set<string> instructions = {"NOP","NOT","JZ","JNZ","JE","JNE","JA","JAE","JB","JBE","JNAE","JNB","JNBE","JNC","JC","PUSH","POP","INT","MOV","ADD","SUB","MUL"
-        ,"DIV","XOR","OR","AND","RCL","RCR","SHL","SHR"}; // A set containing the string values of all possible instructions supported by the processor
+        ,"DIV","XOR","OR","AND","RCL","RCR","SHL","SHR", "JMP", "CMP"}; // A set containing the string values of all possible instructions supported by the processor
 unordered_set<string> directives ={"DW","DB"}; // A set containing the string values of all possible directives supported by the processor
 int instructionLim=-1;
 /* Function declarations */
@@ -82,10 +82,17 @@ int main() {
     cout << endl;
 
 
-    cout << "Memory\n";
-    for (int i=0; i<40; i++) {
+    cout << "Memory "<< instructionLim<<endl;
+    for (int i=0; i<instructionLim; i++) {
         cout << memory[i] << " ";
     }
+
+    cout<<endl;
+    for(int i=0; i<lineNumber.size(); i++) {
+        cout << lineNumber[i] << " ";
+    }
+    cout<<endl;
+
     cout << "\n";
     cout << "\n";
     cout << "Registers\n";
@@ -280,8 +287,8 @@ bool execute(int memoryIndexLimit) {
         else if(instruction=="POP") {
             if(!pop(tokenIndex)) return false;
         }
-        else if(instruction=="JZ"||instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||
-        instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC"||instruction=="JC"	) {
+        else if(instruction=="JZ"||instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||instruction=="JMP"
+       ||instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC"||instruction=="JC"	) {
             int oldMem= memoryIndex;
             if(!generalJump(instruction, memoryIndex)) return false;
             if(memoryIndex!=oldMem) continue;
@@ -925,7 +932,7 @@ bool checkSyntax(string& instruction, int& i) { //offsets are not considered her
         }
 
         if ((instructions.find(op1) != instructions.end()) || instructions.find(op2) != instructions.end() ||
-            op1[op1.length() - 1] == ':' || op2[op2.length() - 1] == ':'||op1=="DB"||op2=="DW"||op1=="OFFSET"||op2=="OFFSET"||op1=="B"||op1=="W") {
+            op1[op1.length() - 1] == ':' || (op2.length()>=1&&op2[op2.length() - 1] == ':')||op1=="DB"||op2=="DW"||op1=="OFFSET"||op2=="OFFSET"||op1=="B"||op1=="W") {
             cout <<"Line:"<<lineNumber[lineNominator]<< " Invalid operand to " << instruction << endl;
             return false;
         }
@@ -940,7 +947,7 @@ bool checkSyntax(string& instruction, int& i) { //offsets are not considered her
         i++;
     }
     //controls instructions with one operand
- else  if(instruction=="PUSH"||instruction=="POP"||instruction=="NOT"||instruction=="MUL"||instruction=="DIV"||instruction=="JZ"||
+ else  if(instruction=="PUSH"||instruction=="POP"||instruction=="NOT"||instruction=="MUL"||instruction=="DIV"||instruction=="JZ"||instruction=="JMP"||
     instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||instruction=="JC"||
     instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC") {
 
