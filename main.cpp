@@ -67,7 +67,6 @@ int main() {
     ifstream inFile;
     inFile.open("../test.txt");
     initializeTokens(inFile);
-    execute(instructionLim);
     //   Following code prints out the state of the processor to the standard output
     cout<<endl;
     cout<<"------------------------------------------------------------------"<<endl;
@@ -77,7 +76,7 @@ int main() {
     cout<<"------------------------------------------------------------------"<<endl;
 
     for(auto iter= tokens.begin(); iter!=tokens.end(); iter++) {
-        cout<<*iter<< " ";
+        cout<<*iter<< " " << endl;
     }
     cout << endl;
 
@@ -123,7 +122,79 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
         string line;
         int lineNum{1};
         while (getline(inFile, line)) {
-            size_t prev = 0, pos;
+            string token = "";
+            int index = 0;
+            while (index < line.length() && line.at(index) != ' ') {
+                token.push_back(line.at(index));
+                index++;
+            }
+            if (token!="") {
+                if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
+                    toUpperCase(token);
+                }
+                tokens.push_back(token);
+                lineNumber.push_back(lineNum);
+                token = "";
+                index++;
+            }
+            while (index < line.length() && line.at(index) != ',') {
+                if (line.at(index) != ' ') {
+                    token.push_back(line.at(index));
+                }
+                if (line.at(index) == ' ') {
+                    if (token == "b" || token == "B" || token == "w" || token == "W") {
+                        cout << token;
+                        if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
+                            toUpperCase(token);
+                        }
+                        tokens.push_back(token);
+                        lineNumber.push_back(lineNum);
+                        token = "";
+                    }
+                }
+                index++;
+            }
+            if (token!="") {
+                if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
+                    toUpperCase(token);
+                }
+                tokens.push_back(token);
+                lineNumber.push_back(lineNum);
+                index++;
+                token = "";
+            }
+            while (index < line.length()) {
+                if (line.at(index) == 39) {
+                    token.push_back(line.at(index++));
+                    if (index < line.length()) token.push_back(line.at(index++));
+                    if (index < line.length()) token.push_back(line.at(index));
+                }
+                else if (line.at(index) == ' ') {
+                    if (token == "b" || token == "B" || token == "w" || token == "W") {
+                        if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
+                            toUpperCase(token);
+                        }
+                        tokens.push_back(token);
+                        lineNumber.push_back(lineNum);
+                        token = "";
+                    }
+                }
+                else if (line.at(index) != ' ') {
+                    token.push_back(line.at(index));
+                }
+                index++;
+            }
+            if (token!="") {
+                if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
+                    toUpperCase(token);
+                }
+                tokens.push_back(token);
+                lineNumber.push_back(lineNum);
+                token="";
+            }
+            lineNum++;
+
+            /*size_t prev = 0, pos;
             bool instructionEncountered= false;
             while ((pos = line.find_first_of(" ,", prev)) != string::npos) {
                 if (pos > prev) {
@@ -154,25 +225,22 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                 lineNumber.push_back(lineNum);
                 tokens.push_back(tokenFounded);
             }
-            lineNum++;
+            lineNum++;*/
         }
     }
     //the world's most ineffective code
-    for(int i=0; i<=tokens.size(); i++) {
-     string token= tokens[i];
-     if(token=="INC") {
-         tokens[i]="ADD";
-         tokens.insert(tokens.begin() + (i+2), "1");
-         lineNumber.insert(lineNumber.begin()+(i+2), lineNumber[i+1] );
-
-     }
-     else if(token=="DEC") {
-        tokens[i]="SUB";
-        tokens.insert(tokens.begin()+(i+2), "1");
-        lineNumber.insert(lineNumber.begin()+ (i+2), lineNumber[i+1]);
-
-     }
-
+    for(int i=0; i<tokens.size(); i++) {
+        token= tokens[i];
+        if(token=="INC") {
+            tokens[i]="ADD";
+            tokens.insert(tokens.begin() + (i+2), "1");
+            lineNumber.insert(lineNumber.begin()+(i+2), lineNumber[i+1] );
+        }
+        else if(token=="DEC") {
+            tokens[i]="SUB";
+            tokens.insert(tokens.begin()+(i+2), "1");
+            lineNumber.insert(lineNumber.begin()+ (i+2), lineNumber[i+1]);
+        }
     }
     // loads the program into memory
     int curPos = 0;
@@ -190,17 +258,17 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                 curPos++;
             }
         }
-        // if the token is a label encode the memory location it refers to
+            // if the token is a label encode the memory location it refers to
         else if (curToken.back() == ':') {
             curToken.pop_back();
             labels[curToken] = curPos;
             continue;
         }
-        // if the token is a directive initialize the variable with proper type
+            // if the token is a directive initialize the variable with proper type
         else if (directives.find(curToken) != directives.end()) {
             string varName = tokens[i - 1];
             string varValue = tokens[i + 1];
-           int value;
+            int value;
             variables[varName] = make_pair(curPos, curToken);
             // if variable value is a number
             if (decimal(varValue, value)) {
@@ -222,7 +290,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                     }
                 }
             }
-            // if variable value is a character
+                // if variable value is a character
             else if (varValue.length() == 3 && varValue.front() == 39 && varValue.back() == 39) {
                 value = varValue.at(1);
                 if (curToken == "DB") {
@@ -254,6 +322,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
         return false;
     }
     return true;
+
 }
 
 bool execute(int memoryIndexLimit) {
