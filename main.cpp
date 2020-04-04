@@ -239,7 +239,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                         cout << "Overflow";
                         return false;
                     } else {
-                        memory[curPos++] = (unsigned short)value & 0xff;
+                        memory[curPos++] = ((unsigned short)value) & 0xff;
                         memory[curPos++] = (((unsigned short)value) >> 8u) & 0xff;
                     }
                 }
@@ -310,7 +310,7 @@ bool execute(int memoryIndexLimit) {
         else if(instruction=="POP") {
             if(!pop(tokenIndex)) return false;
         }
-        else if(instruction=="JZ"||instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||instruction=="JMP"
+        else if(instruction=="JNA"||instruction=="JZ"||instruction=="JNZ"||instruction=="JE"||instruction=="JNE"||instruction=="JA"||instruction=="JAE"||instruction=="JB"||instruction=="JBE"||instruction=="JMP"
        ||instruction=="JNAE"||instruction=="JNB"||instruction=="JNBE"||instruction=="JNC"||instruction=="JC"	) {
             int oldMem= memoryIndex;
             if(!generalJump(instruction, memoryIndex)) return false;
@@ -1390,7 +1390,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             flags["CF"] = 0;
             flags["0F"] = 0;
             flags["AF"] = 0;
-            int result = (a ^ b) & 0xFF;
+            unsigned int result = (a ^ b) & 0xFF;
             int leftmostbit_result = (1<<7) & result;
             flags["SF"] = leftmostbit_result;
             if (result == 0) {
@@ -1405,7 +1405,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             flags["CF"] = 0;
             flags["0F"] = 0;
             flags["AF"] = 0;
-            int result = (a ^ b) & 0xFFFF;
+            unsigned int result = (a ^ b) & 0xFFFF;
             int leftmostbit_result = (1<<15) & result;
             flags["SF"] = leftmostbit_result;
             if (result == 0) {
@@ -1562,7 +1562,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             }
             int result = singlebyte;
             if ( count == 1) {
-                flags["OF"] = (result & (1<<6)) xor (result & (1<<7));
+                flags["OF"] = (result & (1<<6)) ^ (result & (1<<7));
             }
             return result;
         }
@@ -1578,7 +1578,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             }
             int result = singlebyte;
             if ( count == 1) {
-                flags["OF"] = (result & (1<<14)) xor (result & (1<<15));
+                flags["OF"] = (result & (1<<14)) ^ (result & (1<<15));
             }
             return result;
         }
@@ -1596,7 +1596,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             }
             int result = singlebyte;
             if ( count == 1) {
-                flags["OF"] = flags["CF"] xor (result & (1<<7));
+                flags["OF"] = flags["CF"] ^ (result & (1<<7));
             }
             return result;
         }
@@ -1612,7 +1612,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             }
             int result = singlebyte;
             if ( count == 1) {
-                flags["OF"] = flags["CF"] xor (result & (1<<15));
+                flags["OF"] = flags["CF"] ^ (result & (1<<15));
             }
             return result;
         }
@@ -2781,8 +2781,8 @@ bool generalJump(string& op, int& index)  {
                 return false;
             }  }
     }
-    else if(op=="JBE"){
-        if(flags["ZF"]&&flags["CF"]) {
+    else if(op=="JBE"||op=="JNA"){
+        if(flags["ZF"]||flags["CF"]) {
             if(!jmp(index)){
                 return false;
             }  }
@@ -2799,7 +2799,9 @@ bool interrupt(int instructionNum, int& finish) {
     int value;
     if (decimal(operand, value)) {
         if (value == 0x20) {
+            finish=0;
             return true;
+
         }
         else if (value == 0x21) {
             if (registers["AH"].first == 1) {
