@@ -67,6 +67,7 @@ int main() {
     ifstream inFile;
     inFile.open("../test.txt");
     initializeTokens(inFile);
+    execute(instructionLim);
     //   Following code prints out the state of the processor to the standard output
     cout<<endl;
     cout<<"------------------------------------------------------------------"<<endl;
@@ -118,83 +119,13 @@ int main() {
 bool initializeTokens(ifstream& inFile) { // Function to read the input program, write the tokens to the tokens vector and initialize memory
     // reads every token into the tokens vector
     string token;
+    vector<string> temptokens;
+    vector<int> templineNumber;
     if (inFile.is_open()) {
         string line;
         int lineNum{1};
         while (getline(inFile, line)) {
-            string token = "";
-            int index = 0;
-            while (index < line.length() && line.at(index) != ' ') {
-                token.push_back(line.at(index));
-                index++;
-            }
-            if (token!="") {
-                if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
-                    toUpperCase(token);
-                }
-                tokens.push_back(token);
-                lineNumber.push_back(lineNum);
-                token = "";
-                index++;
-            }
-            while (index < line.length() && line.at(index) != ',') {
-                if (line.at(index) != ' ') {
-                    token.push_back(line.at(index));
-                }
-                if (line.at(index) == ' ') {
-                    if (token == "b" || token == "B" || token == "w" || token == "W") {
-                        cout << token;
-                        if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
-                            toUpperCase(token);
-                        }
-                        tokens.push_back(token);
-                        lineNumber.push_back(lineNum);
-                        token = "";
-                    }
-                }
-                index++;
-            }
-            if (token!="") {
-                if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
-                    toUpperCase(token);
-                }
-                tokens.push_back(token);
-                lineNumber.push_back(lineNum);
-                index++;
-                token = "";
-            }
-            while (index < line.length()) {
-                if (line.at(index) == 39) {
-                    token.push_back(line.at(index++));
-                    if (index < line.length()) token.push_back(line.at(index++));
-                    if (index < line.length()) token.push_back(line.at(index));
-                }
-                else if (line.at(index) == ' ') {
-                    if (token == "b" || token == "B" || token == "w" || token == "W") {
-                        if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
-                            toUpperCase(token);
-                        }
-                        tokens.push_back(token);
-                        lineNumber.push_back(lineNum);
-                        token = "";
-                    }
-                }
-                else if (line.at(index) != ' ') {
-                    token.push_back(line.at(index));
-                }
-                index++;
-            }
-            if (token!="") {
-                if (token.length() != 3 || token.front()!=39 || token.back()!=39) {
-                    toUpperCase(token);
-                }
-                tokens.push_back(token);
-                lineNumber.push_back(lineNum);
-                token="";
-            }
-            lineNum++;
-
-            /*size_t prev = 0, pos;
+            size_t prev = 0, pos;
             bool instructionEncountered= false;
             while ((pos = line.find_first_of(" ,", prev)) != string::npos) {
                 if (pos > prev) {
@@ -207,8 +138,8 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                             return false;
                         }
                     }
-                    tokens.push_back(tokenFounded);
-                    lineNumber.push_back(lineNum); }
+                    temptokens.push_back(tokenFounded);
+                    templineNumber.push_back(lineNum); }
                 prev = pos + 1;
             }
             if (prev < line.length()) {
@@ -222,11 +153,34 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                     return false;
                     }
                 }
-                lineNumber.push_back(lineNum);
-                tokens.push_back(tokenFounded);
+                templineNumber.push_back(lineNum);
+                temptokens.push_back(tokenFounded);
             }
-            lineNum++;*/
+            lineNum++;
         }
+        int index = 0;
+        while (index < temptokens.size()) {
+            string curToken = temptokens[index];
+            if (curToken == "B" || curToken == "W") {
+                if (temptokens[index+1].front() == '[') {
+                    while (curToken.back()!=']') {
+                        index++;
+                        curToken.append(temptokens[index]);
+                    }
+                }
+            }
+            else if (curToken.find('[') != string::npos) {
+                while (curToken.back()!=']') {
+                    index++;
+                    curToken.append(temptokens[index]);
+                }
+            }
+            tokens.push_back(curToken);
+            lineNumber.push_back(templineNumber[index]);
+            index++;
+        }
+
+
     }
     //the world's most ineffective code
     for(int i=0; i<tokens.size(); i++) {
@@ -371,6 +325,9 @@ bool execute(int memoryIndexLimit) {
             int a=-1;
             if(!interrupt(tokenIndex,a)) return false;
             if(a==0) return true;
+
+        }
+        else if (instruction == "NOP") {
 
         }
         else return false;
@@ -2319,7 +2276,7 @@ bool singleOperandArithmetic(string& operation, int instructionNum) {
                 }
                 unsigned int quotient= registers["AX"].first/divisor;
                 if(quotient>255) {
-                    cout << "Error at line:" << lineNumber[instructionNum] << "Overflow in DIV operation, the result does not fit in 8 bits";
+                    cout << "Error at line:" << lineNumber[instructionNum] << " Overflow in DIV operation, the result does not fit in 8 bits";
                     return false;
                 }
                 unsigned  int remainder= registers["AX"].first%divisor;
@@ -2338,7 +2295,7 @@ bool singleOperandArithmetic(string& operation, int instructionNum) {
                 unsigned int quotient= dividend/divisor;
                 unsigned  int remainder= dividend%divisor;
                 if(quotient>65535) {
-                    cout << "Error at line:" << lineNumber[instructionNum] << "Overflow in DIV operation, the result does not fit in 8 bits";
+                    cout << "Error at line:" << lineNumber[instructionNum] << " Overflow in DIV operation, the result does not fit in 8 bits";
                     return false;
                 }
                 registers["AX"].first= quotient;
