@@ -67,6 +67,7 @@ int main() {
     ifstream inFile;
     inFile.open("../test.txt");
     initializeTokens(inFile);
+
     execute(instructionLim);
     //   Following code prints out the state of the processor to the standard output
     cout<<endl;
@@ -1344,10 +1345,6 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             return result;
         }
     }
-
-
-
-
     else if (type == 'W') {
         unsigned short int firstValue = op1;
         unsigned short int secondValue = op2;
@@ -1502,7 +1499,10 @@ unsigned int arithmeticUnit(unsigned int a, string operation, char type) {
         }
     }
     if (operation == "NOT") {
-        return ~a;
+        if (type == 'B') {
+            return (unsigned char) ~a;
+        }
+        else return (unsigned short int) ~a;
     }
     return 0;
 }
