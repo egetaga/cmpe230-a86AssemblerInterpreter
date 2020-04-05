@@ -67,8 +67,8 @@ int main() {
     ifstream inFile;
     inFile.open("../test.txt");
     initializeTokens(inFile);
-
     execute(instructionLim);
+
     //   Following code prints out the state of the processor to the standard output
     cout<<endl;
     cout<<"------------------------------------------------------------------"<<endl;
@@ -126,36 +126,29 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
         string line;
         int lineNum{1};
         while (getline(inFile, line)) {
-            size_t prev = 0, pos;
-            bool instructionEncountered= false;
-            while ((pos = line.find_first_of(" ,", prev)) != string::npos) {
-                if (pos > prev) {
-                    //add token Upper Case converter
-                  string tokenFounded= line.substr(prev, pos - prev);
-                  toUpperCase(tokenFounded);
-                    if(instructions.find(tokenFounded)!=instructions.end()) {
-                        if(!instructionEncountered) { instructionEncountered=true; }
-                        else {cout<<"Multiple instructions on line "<<lineNum<<endl;
-                            return false;
-                        }
-                    }
-                    temptokens.push_back(tokenFounded);
-                    templineNumber.push_back(lineNum); }
-                prev = pos + 1;
-            }
-            if (prev < line.length()) {
-                //add token Upper Case converter
-                string tokenFounded= line.substr(prev, string::npos);
-                toUpperCase(tokenFounded);
-                if(instructions.find(tokenFounded)!=instructions.end()) {
-                    if(!instructionEncountered) {
-                        instructionEncountered=true; }
-                    else {cout<<"Multiple instructions on line "<<lineNum<<endl;
-                    return false;
+            string curToken = "";
+            while (line.front() == ' ') line.erase(0,1);
+            while (line.back() == ' ') line.pop_back();
+            for (int i=0; i<line.length(); i++) {
+                char current = line[i];
+                if (current == ' ' || current == ',') {
+                    if (line[i-1] == 39 && line[i+1] == 39) curToken += current;
+                    else if (curToken != "") {
+                        if (curToken.front() != 39 || curToken.back() != 39) toUpperCase(curToken);
+                        temptokens.push_back(curToken);
+                        templineNumber.push_back(lineNum);
+                        curToken = "";
                     }
                 }
+                else {
+                    curToken += current;
+                }
+            }
+            if (curToken != "") {
+                if (curToken.front() != 39 || curToken.back() != 39) toUpperCase(curToken);
+                temptokens.push_back(curToken);
                 templineNumber.push_back(lineNum);
-                temptokens.push_back(tokenFounded);
+                curToken = "";
             }
             lineNum++;
         }
