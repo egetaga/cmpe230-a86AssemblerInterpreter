@@ -1211,414 +1211,277 @@ bool pop(int instructionNum) {
 }
 
 unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
-    unsigned int a = op1;
-    unsigned int b = op2;
-    if (operation == "ADD") {
-        if (type == 'B') {
-            if (a+b > 255) {
-                flags["CF"] = 1;
-            }
-            else {
-                flags["CF"] = 0;
-            }
-            int leftmostbit_op1 = (1 << 7) & a;
-            int leftmostbit_op2 = (1 << 7) & b;
-            int result = (a+b) & 0xFF;
-            int leftmostbit_result = (1<<7) & result;
-            if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
-                flags["OF"] = 1;
-            }
-            else {
-                flags["0F"] = 0;
-            }
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
-            int lownibble_op1 = op1 & 0xF;
-            int lownibble_op2 = op2 & 0xF;
-            if (lownibble_op1 + lownibble_op2 > 15) {
-                flags["AF"] = 1;
-            }
-            else {
-                flags["AF"] = 0;
-            }
+    if (type == 'B') {
+        unsigned char firstValue = op1;
+        unsigned char secondValue = op2;
+        if (operation == "ADD") {
+            unsigned char result = firstValue + secondValue;
+            bool leftBit1 = (firstValue & (1<<7)) >> 7;
+            bool leftBit2 = (secondValue & (1<<7)) >> 7;
+            bool leftBitRes = (result & (1<<7)) >> 7;
+            unsigned char lowNibble1 = firstValue & (0xF);
+            unsigned char lowNibble2 = secondValue & (0xF);
+            unsigned char lowNibbleRes = result & (0xF);
+            flags["CF"] = result < leftBit1 && result < leftBit2;
+            flags["AF"] = lowNibbleRes < lowNibble1 && lowNibbleRes < lowNibble2;
+            flags["OF"] = leftBit1 == leftBit2 && leftBit1 != leftBitRes;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
             return result;
         }
-        if (type == 'W') {
-            if (a+b > 65535) {
-                flags["CF"] = 1;
-            }
-            else {
-                flags["CF"] = 0;
-            }
-            int leftmostbit_op1 = (1 << 15) & op1;
-            int leftmostbit_op2 = (1 << 15) & op2;
-            int result = (a+b) & 0xFFFF;
-            int leftmostbit_result = (1<<15) & result;
-            if (leftmostbit_op1 == leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
-                flags["OF"] = 1;
-            }
-            else {
-                flags["0F"] = 0;
-            }
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
-            int lownibble_op1 = op1 & 0xF;
-            int lownibble_op2 = op2 & 0xF;
-            if (lownibble_op1 + lownibble_op2 > 15) {
-                flags["AF"] = 1;
-            }
-            else {
-                flags["AF"] = 0;
-            }
+        if (operation == "SUB" || operation == "CMP") {
+            unsigned char result = firstValue - secondValue;
+            bool leftBit1 = (firstValue & (1<<7)) >> 7;
+            bool leftBit2 = (secondValue & (1<<7)) >> 7;
+            bool leftBitRes = (result & (1<<7)) >> 7;
+            unsigned char lowNibble1 = firstValue & (0xF);
+            unsigned char lowNibble2 = secondValue & (0xF);
+            unsigned char lowNibbleRes = result & (0xF);
+            flags["CF"] = firstValue < secondValue;
+            flags["AF"] = lowNibble1 < lowNibble2;
+            flags["OF"] = leftBit1 != leftBit2 && leftBit1 != leftBitRes;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
             return result;
         }
-    }
-    if (operation == "SUB"||operation=="CMP") {
-        if (type == 'B') {
-            if (a < b) {
-                flags["CF"] = 1;
-            }
-            else {
-                flags["CF"] = 0;
-            }
-            int leftmostbit_op1 = (1 << 7) & op1;
-            int leftmostbit_op2 = (1 << 7) & op2;
-            int result = ((unsigned int)(a-b)) & 0xFF;
-            int leftmostbit_result = (1<<7) & result;
-            if (leftmostbit_op1 != leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
-                flags["OF"] = 1;
-            }
-            else {
-                flags["0F"] = 0;
-            }
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
-            int lownibble_op1 = op1 & 0xF;
-            int lownibble_op2 = op2 & 0xF;
-            if (lownibble_op1 < lownibble_op2) {
-                flags["AF"] = 1;
-            }
-            else {
-                flags["AF"] = 0;
-            }
-            return result;
-        }
-        if (type == 'W') {
-            if (a < b) {
-                flags["CF"] = 1;
-            }
-            else {
-                flags["CF"] = 0;
-            }
-            int leftmostbit_op1 = (1 << 15) & op1;
-            int leftmostbit_op2 = (1 << 15) & op2;
-            int result = (a-b) & 0xFFFF;
-            int leftmostbit_result = (1<<15) & result;
-            if (leftmostbit_op1 != leftmostbit_op2 && leftmostbit_op1 != leftmostbit_result) {
-                flags["OF"] = 1;
-            }
-            else {
-                flags["0F"] = 0;
-            }
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
-            int lownibble_op1 = op1 & 0xF;
-            int lownibble_op2 = op2 & 0xF;
-            if (lownibble_op1 < lownibble_op2 ) {
-                flags["AF"] = 1;
-            }
-            else {
-                flags["AF"] = 0;
-            }
-            return result;
-        }
-    }
-    if (operation == "AND") {
-        if (type == 'B') {
+        if (operation == "AND") {
+            unsigned char result = firstValue & secondValue;
+            bool leftBit1 = (firstValue & (1<<7)) >> 7;
+            bool leftBit2 = (secondValue & (1<<7)) >> 7;
+            bool leftBitRes = (result & (1<<7)) >> 7;
             flags["CF"] = 0;
-            flags["0F"] = 0;
-            flags["AF"] = 0;
-            int result = (a & b) & 0xFF;
-            int leftmostbit_result = (1<<7) & result;
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
+            flags["OF"] = 0;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
             return result;
         }
-        if (type == 'W') {
+        if (operation == "OR") {
+            unsigned char result = firstValue | secondValue;
+            bool leftBit1 = (firstValue & (1<<7)) >> 7;
+            bool leftBit2 = (secondValue & (1<<7)) >> 7;
+            bool leftBitRes = (result & (1<<7)) >> 7;
             flags["CF"] = 0;
-            flags["0F"] = 0;
-            flags["AF"] = 0;
-            int result = (a & b) & 0xFFFF;
-            int leftmostbit_result = (1<<15) & result;
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
+            flags["OF"] = 0;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
             return result;
         }
-    }
-    if (operation == "XOR") {
-        if (type == 'B') {
+        if (operation == "XOR") {
+            unsigned char result = firstValue ^ secondValue;
+            bool leftBit1 = (firstValue & (1<<7)) >> 7;
+            bool leftBit2 = (secondValue & (1<<7)) >> 7;
+            bool leftBitRes = (result & (1<<7)) >> 7;
             flags["CF"] = 0;
-            flags["0F"] = 0;
-            flags["AF"] = 0;
-            unsigned int result = (a ^ b) & 0xFF;
-            int leftmostbit_result = (1<<7) & result;
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
+            flags["OF"] = 0;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
             return result;
         }
-        if (type == 'W') {
-            flags["CF"] = 0;
-            flags["0F"] = 0;
-            flags["AF"] = 0;
-            unsigned int result = (a ^ b) & 0xFFFF;
-            int leftmostbit_result = (1<<15) & result;
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
-            return result;
-        }
-    }
-    if (operation == "OR") {
-        if (type == 'B') {
-            flags["CF"] = 0;
-            flags["0F"] = 0;
-            flags["AF"] = 0;
-            int result = (a | b) & 0xFF;
-            int leftmostbit_result = (1<<7) & result;
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
-            return result;
-        }
-        if (type == 'W') {
-            flags["CF"] = 0;
-            flags["0F"] = 0;
-            flags["AF"] = 0;
-            int result = (a | b) & 0xFFFF;
-            int leftmostbit_result = (1<<15) & result;
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
-            return result;
-        }
-    }
-    if (operation == "SHR") {
-        if (type == 'B') {
-            int count = b;
-            unsigned char singlebyte = a & 0xFF;
-            if (count == 0) {
-                return singlebyte;
-            }
-            unsigned int result = singlebyte >> count-1;
-            if (count < 8) {
+        if (operation == "SHR") {
+            unsigned char result = firstValue;
+            if (secondValue == 0) return result;
+            for (int i=0; i<secondValue; i++) {
                 flags["CF"] = result & 1;
+                result = result >> 1;
             }
-            result = result >> 1;
-            if (count == 1) {
-                flags["OF"] = singlebyte & (1 << 7);
-            }
-            int leftmostbit_result = (1<<7) & result;
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
+            bool leftBit1 = (firstValue & (1<<7)) >> 7;
+            bool leftBit2 = (secondValue & (1<<7)) >> 7;
+            bool leftBitRes = (result & (1<<7)) >> 7;
+            if (secondValue == 1) flags["OF"] = leftBit1;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
             return result;
         }
-        if (type == 'W') {
-            int count = b;
-            unsigned short int twobytes = a & 0xFFFF;
-            if (count == 0) {
-                return twobytes;
+        if (operation == "SHL") {
+            unsigned char result = firstValue;
+            if (secondValue == 0) return result;
+            for (int i=0; i<secondValue; i++) {
+                flags["CF"] = (result & (1<<7)) >> 7;
+                result = result << 1;
             }
-            unsigned int result = twobytes >> count-1;
-            if (count < 16) {
+            bool leftBit1 = (firstValue & (1<<7)) >> 7;
+            bool leftBit2 = (secondValue & (1<<7)) >> 7;
+            bool leftBitRes = (result & (1<<7)) >> 7;
+            if (secondValue == 1) flags["OF"] = leftBitRes != flags["CF"];
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
+            return result;
+        }
+        if (operation == "RCR") {
+            unsigned char result = firstValue;
+            if (secondValue == 0) return result;
+            for (int i=0; i<secondValue; i++) {
+                int temp = flags["CF"];
                 flags["CF"] = result & 1;
+                result = result >> 1;
+                unsigned char mask = 1 << 7;
+                result = (result & ~mask) | ((temp << 7) & mask);
             }
-            result = result >> 1;
-            if (count == 1) {
-                flags["OF"] = twobytes & (1 << 15);
+            bool leftBit1 = (firstValue & (1<<7)) >> 7;
+            bool leftBit2 = (secondValue & (1<<7)) >> 7;
+            bool leftBitRes = (result & (1<<7)) >> 7;
+            if (secondValue == 1) flags["OF"] = leftBitRes ^ ((result & (1<<6)) >> 6);
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
+            return result;
+        }
+        if (operation == "RCL") {
+            unsigned char result = firstValue;
+            if (secondValue == 0) return result;
+            for (int i=0; i<secondValue; i++) {
+                int temp = flags["CF"];
+                flags["CF"] = (result & (1<<7)) >> 7;
+                result = result << 1;
+                unsigned char mask = 1;
+                result = (result & ~mask) | ((temp) & mask);
             }
-            int leftmostbit_result = (1<<15) & result;
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
+            bool leftBit1 = (firstValue & (1<<7)) >> 7;
+            bool leftBit2 = (secondValue & (1<<7)) >> 7;
+            bool leftBitRes = (result & (1<<7)) >> 7;
+            if (secondValue == 1) flags["OF"] = leftBitRes ^ flags["CF"];
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
             return result;
         }
     }
-    if (operation == "SHL") {
-        if (type == 'B') {
-            int count = b;
-            unsigned char singlebyte = a & 0xFF;
-            if (count == 0) {
-                return singlebyte;
-            }
-            unsigned int result = singlebyte << count-1;
-            if (count < 8) {
-                flags["CF"] = result & (1<<7);
-            }
-            result = result << 1;
-            int leftmostbit_result = (1<<7) & result;
-            if (count == 1) {
-                flags["OF"] = leftmostbit_result != flags["CF"];
-            }
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
-            }
-            else {
-                flags["ZF"] = 0;
-            }
+
+
+
+
+    else if (type == 'W') {
+        unsigned short int firstValue = op1;
+        unsigned short int secondValue = op2;
+        if (operation == "ADD") {
+            unsigned short int result = firstValue + secondValue;
+            bool leftBit1 = (firstValue & (1<<15)) >> 15;
+            bool leftBit2 = (secondValue & (1<<15)) >> 15;
+            bool leftBitRes = (result & (1<<15)) >> 15;
+            unsigned char lowNibble1 = firstValue & (0xF);
+            unsigned char lowNibble2 = secondValue & (0xF);
+            unsigned char lowNibbleRes = result & (0xF);
+            flags["CF"] = result < leftBit1 && result < leftBit2;
+            flags["AF"] = lowNibbleRes < lowNibble1 && lowNibbleRes < lowNibble2;
+            flags["OF"] = leftBit1 == leftBit2 && leftBit1 != leftBitRes;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
             return result;
         }
-        if (type == 'W') {
-            int count = b;
-            unsigned short int twobytes = a & 0xFFFF;
-            if (count == 0) {
-                return twobytes;
+        if (operation == "SUB" || operation == "CMP") {
+            unsigned short int result = firstValue - secondValue;
+            bool leftBit1 = (firstValue & (1<<15)) >> 15;
+            bool leftBit2 = (secondValue & (1<<15)) >> 15;
+            bool leftBitRes = (result & (1<<15)) >> 15;
+            unsigned char lowNibble1 = firstValue & (0xF);
+            unsigned char lowNibble2 = secondValue & (0xF);
+            unsigned char lowNibbleRes = result & (0xF);
+            flags["CF"] = firstValue < secondValue;
+            flags["AF"] = lowNibble1 < lowNibble2;
+            flags["OF"] = leftBit1 != leftBit2 && leftBit1 != leftBitRes;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
+            return result;
+        }
+        if (operation == "AND") {
+            unsigned short int result = firstValue & secondValue;
+            bool leftBit1 = (firstValue & (1<<15)) >> 15;
+            bool leftBit2 = (secondValue & (1<<15)) >> 15;
+            bool leftBitRes = (result & (1<<15)) >> 15;
+            flags["CF"] = 0;
+            flags["OF"] = 0;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
+            return result;
+        }
+        if (operation == "OR") {
+            unsigned short int result = firstValue | secondValue;
+            bool leftBit1 = (firstValue & (1<<15)) >> 15;
+            bool leftBit2 = (secondValue & (1<<15)) >> 15;
+            bool leftBitRes = (result & (1<<15)) >> 15;
+            flags["CF"] = 0;
+            flags["OF"] = 0;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
+            return result;
+        }
+        if (operation == "XOR") {
+            unsigned short int result = firstValue ^ secondValue;
+            bool leftBit1 = (firstValue & (1<<15)) >> 15;
+            bool leftBit2 = (secondValue & (1<<15)) >> 15;
+            bool leftBitRes = (result & (1<<15)) >> 15;
+            flags["CF"] = 0;
+            flags["OF"] = 0;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
+            return result;
+        }
+        if (operation == "SHR") {
+            unsigned short int result = firstValue;
+            if (secondValue == 0) return result;
+            for (int i=0; i<secondValue; i++) {
+                flags["CF"] = result & 1;
+                result = result >> 1;
             }
-            unsigned int result = twobytes << count-1;
-            if (count < 16) {
-                flags["CF"] = result & (1<<15);
+            bool leftBit1 = (firstValue & (1<<15)) >> 15;
+            bool leftBit2 = (secondValue & (1<<15)) >> 15;
+            bool leftBitRes = (result & (1<<15)) >> 15;
+            if (secondValue == 1) flags["OF"] = leftBit1;
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
+            return result;
+        }
+        if (operation == "SHL") {
+            unsigned short int result = firstValue;
+            if (secondValue == 0) return result;
+            for (int i=0; i<secondValue; i++) {
+                flags["CF"] = (result & (1<<15)) >> 15;
+                result = result << 1;
             }
-            result = result << 1;
-            int leftmostbit_result = (1<<15) & result;
-            if (count == 1) {
-                flags["OF"] = leftmostbit_result != flags["CF"];
+            bool leftBit1 = (firstValue & (1<<15)) >> 15;
+            bool leftBit2 = (secondValue & (1<<15)) >> 15;
+            bool leftBitRes = (result & (1<<15)) >> 15;
+            if (secondValue == 1) flags["OF"] = leftBitRes != flags["CF"];
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
+            return result;
+        }
+        if (operation == "RCR") {
+            unsigned short int result = firstValue;
+            if (secondValue == 0) return result;
+            for (int i=0; i<secondValue; i++) {
+                int temp = flags["CF"];
+                flags["CF"] = result & 1;
+                result = result >> 1;
+                unsigned short int mask = 1 << 15;
+                result = (result & ~mask) | ((temp << 15) & mask);
             }
-            flags["SF"] = leftmostbit_result;
-            if (result == 0) {
-                flags["ZF"] = 1;
+            bool leftBit1 = (firstValue & (1<<15)) >> 15;
+            bool leftBit2 = (secondValue & (1<<15)) >> 15;
+            bool leftBitRes = (result & (1<<15)) >> 15;
+            if (secondValue == 1) flags["OF"] = leftBitRes ^ ((result & (1<<14)) >> 6);
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
+            return result;
+        }
+        if (operation == "RCL") {
+            unsigned short int result = firstValue;
+            if (secondValue == 0) return result;
+            for (int i=0; i<secondValue; i++) {
+                int temp = flags["CF"];
+                flags["CF"] = (result & (1<<15)) >> 15;
+                result = result << 1;
+                unsigned short int mask = 1;
+                result = (result & ~mask) | ((temp) & mask);
             }
-            else {
-                flags["ZF"] = 0;
-            }
+            bool leftBit1 = (firstValue & (1<<15)) >> 15;
+            bool leftBit2 = (secondValue & (1<<15)) >> 15;
+            bool leftBitRes = (result & (1<<15)) >> 15;
+            if (secondValue == 1) flags["OF"] = leftBitRes ^ flags["CF"];
+            flags["SF"] = leftBitRes;
+            flags["ZF"] = result == 0;
             return result;
         }
     }
-    if (operation == "RCR") {
-        if (type == 'B') {
-            int count = b;
-            unsigned char singlebyte = a & 0xFF;
-            for (int i=0; i<count; i++) {
-                int rightmostbit = singlebyte & 1;
-                singlebyte = singlebyte >> 1;
-                int mask = 1 << 7;
-                singlebyte = (singlebyte & ~mask) | ((flags["CF"] << 7) & mask);
-                flags["CF"] = rightmostbit;
-            }
-            int result = singlebyte;
-            if ( count == 1) {
-                flags["OF"] = (result & (1<<6)) ^ (result & (1<<7));
-            }
-            return result;
-        }
-        if (type == 'W') {
-            int count = b;
-            unsigned short int singlebyte = a & 0xFFFF;
-            for (int i=0; i<count; i++) {
-                int rightmostbit = singlebyte & 1;
-                singlebyte = singlebyte >> 1;
-                int mask = 1 << 15;
-                singlebyte = (singlebyte & ~mask) | ((flags["CF"] << 15) & mask);
-                flags["CF"] = rightmostbit;
-            }
-            int result = singlebyte;
-            if ( count == 1) {
-                flags["OF"] = (result & (1<<14)) ^ (result & (1<<15));
-            }
-            return result;
-        }
-    }
-    if (operation == "RCL") {
-        if (type == 'B') {
-            int count = b;
-            unsigned char singlebyte = a & 0xFF;
-            for (int i=0; i<count; i++) {
-                int leftmostbit = singlebyte & 1;
-                singlebyte = singlebyte << 1;
-                int mask = 1;
-                singlebyte = (singlebyte & ~mask) | ((flags["CF"]) & mask);
-                flags["CF"] = leftmostbit;
-            }
-            int result = singlebyte;
-            if ( count == 1) {
-                flags["OF"] = flags["CF"] ^ (result & (1<<7));
-            }
-            return result;
-        }
-        if (type == 'W') {
-            int count = b;
-            unsigned short int singlebyte = a & 0xFFFF;
-            for (int i=0; i<count; i++) {
-                int leftmostbit = singlebyte & 1;
-                singlebyte = singlebyte << 1;
-                int mask = 1;
-                singlebyte = (singlebyte & ~mask) | ((flags["CF"]) & mask);
-                flags["CF"] = leftmostbit;
-            }
-            int result = singlebyte;
-            if ( count == 1) {
-                flags["OF"] = flags["CF"] ^ (result & (1<<15));
-            }
-            return result;
-        }
-    }
-    return false;
-    // to do: test the rotation and shifts
+    return INT_MAX;
 }
 
 unsigned int arithmeticUnit(unsigned int a, string operation, char type) {

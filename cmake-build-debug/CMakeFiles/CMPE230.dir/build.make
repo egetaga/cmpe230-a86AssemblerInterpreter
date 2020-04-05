@@ -42,10 +42,10 @@ RM = "C:\Program Files\JetBrains\CLion 2019.3.5\bin\cmake\win\bin\cmake.exe" -E 
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2
+CMAKE_SOURCE_DIR = C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\cmake-build-debug
+CMAKE_BINARY_DIR = C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\cmake-build-debug
 
 # Include any dependencies generated for this target.
 include CMakeFiles/CMPE230.dir/depend.make
@@ -58,29 +58,29 @@ include CMakeFiles/CMPE230.dir/flags.make
 
 CMakeFiles/CMPE230.dir/main.cpp.obj: CMakeFiles/CMPE230.dir/flags.make
 CMakeFiles/CMPE230.dir/main.cpp.obj: ../main.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\cmake-build-debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/CMPE230.dir/main.cpp.obj"
-	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles\CMPE230.dir\main.cpp.obj -c C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\main.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\cmake-build-debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/CMPE230.dir/main.cpp.obj"
+	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles\CMPE230.dir\main.cpp.obj -c C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\main.cpp
 
 CMakeFiles/CMPE230.dir/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/CMPE230.dir/main.cpp.i"
-	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\main.cpp > CMakeFiles\CMPE230.dir\main.cpp.i
+	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\main.cpp > CMakeFiles\CMPE230.dir\main.cpp.i
 
 CMakeFiles/CMPE230.dir/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/CMPE230.dir/main.cpp.s"
-	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\main.cpp -o CMakeFiles\CMPE230.dir\main.cpp.s
+	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\main.cpp -o CMakeFiles\CMPE230.dir\main.cpp.s
 
 CMakeFiles/CMPE230.dir/operations.cpp.obj: CMakeFiles/CMPE230.dir/flags.make
 CMakeFiles/CMPE230.dir/operations.cpp.obj: ../operations.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\cmake-build-debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/CMPE230.dir/operations.cpp.obj"
-	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles\CMPE230.dir\operations.cpp.obj -c C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\operations.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\cmake-build-debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/CMPE230.dir/operations.cpp.obj"
+	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles\CMPE230.dir\operations.cpp.obj -c C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\operations.cpp
 
 CMakeFiles/CMPE230.dir/operations.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/CMPE230.dir/operations.cpp.i"
-	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\operations.cpp > CMakeFiles\CMPE230.dir\operations.cpp.i
+	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\operations.cpp > CMakeFiles\CMPE230.dir\operations.cpp.i
 
 CMakeFiles/CMPE230.dir/operations.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/CMPE230.dir/operations.cpp.s"
-	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\operations.cpp -o CMakeFiles\CMPE230.dir\operations.cpp.s
+	C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\operations.cpp -o CMakeFiles\CMPE230.dir\operations.cpp.s
 
 # Object files for target CMPE230
 CMPE230_OBJECTS = \
@@ -96,7 +96,7 @@ CMPE230.exe: CMakeFiles/CMPE230.dir/build.make
 CMPE230.exe: CMakeFiles/CMPE230.dir/linklibs.rsp
 CMPE230.exe: CMakeFiles/CMPE230.dir/objects1.rsp
 CMPE230.exe: CMakeFiles/CMPE230.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\cmake-build-debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable CMPE230.exe"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\cmake-build-debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable CMPE230.exe"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles\CMPE230.dir\link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -109,6 +109,6 @@ CMakeFiles/CMPE230.dir/clean:
 .PHONY : CMakeFiles/CMPE230.dir/clean
 
 CMakeFiles/CMPE230.dir/depend:
-	$(CMAKE_COMMAND) -E cmake_depends "MinGW Makefiles" C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2 C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2 C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\cmake-build-debug C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\cmake-build-debug C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreter-NEWEST2\cmake-build-debug\CMakeFiles\CMPE230.dir\DependInfo.cmake --color=$(COLOR)
+	$(CMAKE_COMMAND) -E cmake_depends "MinGW Makefiles" C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\cmake-build-debug C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\cmake-build-debug C:\Users\Tolga\Desktop\cmpe230-a86AssemblerInterpreterrrrrrr\cmake-build-debug\CMakeFiles\CMPE230.dir\DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/CMPE230.dir/depend
 
