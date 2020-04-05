@@ -1222,7 +1222,7 @@ unsigned int arithmeticUnit(int op1, int op2, string  operation, char type) {
             unsigned char lowNibble1 = firstValue & (0xF);
             unsigned char lowNibble2 = secondValue & (0xF);
             unsigned char lowNibbleRes = result & (0xF);
-            flags["CF"] = result < leftBit1 && result < leftBit2;
+            flags["CF"] = result < firstValue && result < secondValue;
             flags["AF"] = lowNibbleRes < lowNibble1 && lowNibbleRes < lowNibble2;
             flags["OF"] = leftBit1 == leftBit2 && leftBit1 != leftBitRes;
             flags["SF"] = leftBitRes;
