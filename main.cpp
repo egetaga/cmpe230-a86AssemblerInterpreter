@@ -1,10 +1,11 @@
-#include <vector>
+#include  <vector>
 #include <list>
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <cctype>
+#include <bits/stdc++.h>
 
 
 using namespace std;
@@ -194,6 +195,20 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
     int curPos = 0;
     for (int i = 0; i < tokens.size(); i++) {
         string curToken = tokens[i];
+        if(i!=0&&lineNumber[i-1]!=lineNumber[i]&&instructions.find(curToken)==instructions.end()&&curToken!="CODE"&&curToken.back()!=':') {
+            if(!((i+1<tokens.size()&&tokens[i+1]=="DW")||tokens[i+1]=="DB" ))
+            cout<<"Error at line "<<lineNumber[i]<<" Unknown menomonic: "<< curToken<<endl;
+        }
+        else if(i!=0&& lineNumber[i-1]==lineNumber[i]&& (instructions.find(curToken)!=instructions.end()||curToken.back()==':')) {
+            cout<<"Error at line "<<lineNumber[i]<<" Invalid mnemonic: "<< curToken<<endl;
+        }
+        if(i==0&& (tokens[i]!="CODE"||tokens[i+1]!="SEGMENT")) {  cout<<"Error at line "<<lineNumber[i]<<" Unknown menomonic: "<< curToken<<endl;
+        return false; }
+
+        if((i==tokens.size()-2)&&(tokens.at(tokens.size()-2)!="CODE"||tokens.at(tokens.size()-1)!="ENDS")) {
+            cout<<"Error at line "<<lineNumber[i]<<" Unknown menomonic: "<< curToken<<endl;
+        return false;}
+
         // if the token is an instruction, encode it to memory using 6 bytes, but first check whether it is syntatically true or not
         if (instructions.find(curToken) != instructions.end()) {
 
@@ -222,7 +237,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
             if (decimal(varValue, value)) {
                 if (curToken == "DB") {
                     if (value > 255) {
-                        cout << "Overflow";
+                        cout <<"Error at line number"<<lineNumber[i]<< " : Overflow";
                         return false;
                     } else {
                         memory[curPos++] = value;
@@ -230,7 +245,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                 }
                 if (curToken == "DW") {
                     if (value > 65535) {
-                        cout << "Overflow";
+                        cout <<"Error at line number"<<lineNumber[i]<< " : Overflow";
                         return false;
                     } else {
                         memory[curPos++] = ((unsigned short)value) & 0xff;
@@ -243,7 +258,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                 value = varValue.at(1);
                 if (curToken == "DB") {
                     if (value > 255) {
-                        cout << "Overflow";
+                        cout <<"Error at line number"<<lineNumber[i]<< " : Overflow";
                         return false;
                     } else {
                         memory[curPos++] = value;
@@ -251,7 +266,7 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                 }
                 if (curToken == "DW") {
                     if (value > 65535) {
-                        cout << "Overflow";
+                        cout <<"Error at line number"<<lineNumber[i]<< " : Overflow";
                         return false;
                     } else {
                         memory[curPos++] = value & 0xff;
@@ -260,13 +275,13 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
                 }
             }
             else {
-                cout << "Invalid variable initialization. Must be a character or a number.";
+                cout <<"Error at line number "<<lineNumber[i]<< " : Invalid variable initialization. Must be a character or a number.";
                 return false;
             }
         }
     }
     if(instructionLim==-1) {
-        cout<<"Program must end with INT 20H"<<endl;
+        cout<<" Program must end with INT 20H in HYP86 "<<endl;
         return false;
     }
     return true;
@@ -446,7 +461,7 @@ bool mov(int instructionNum) {
             }
         }
         // case where the source is the contents of a memory offset pointed by a register
-        else if (source.size() == 5 && source.at(1) == '[' && source.at(4) == ']') {
+        else if (source.size() == 5 && source.at(1) == '[' && source.at(4) == ']'&&registers.find(source.substr(2,2))!=registers.end()) {
             string registerName = source.substr(2,2);
             if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
                 char type = source.front();
@@ -487,6 +502,11 @@ bool mov(int instructionNum) {
                 string val = source.substr(2, source.length()-3);
                 int value;
                 if (decimal(val, value)) {
+
+                    if(value<0||value>(65535)) {
+                        cout <<"Error at line: "<<lineNumber[instructionNum] << " Index out of range ";
+                        return false;
+                    }
                     registers[destination].first = memory[value];
                 }
                 else {
@@ -498,6 +518,10 @@ bool mov(int instructionNum) {
                 string val = source.substr(2, source.length()-3);
                 int value;
                 if (decimal(val, value)) {
+                    if(value<0||value>(65535)) {
+                        cout <<"Error at line: "<<lineNumber[instructionNum] << " Index out of range ";
+                        return false;
+                    }
                     if (registers[destination].second == 255) {
                         cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
                         return false;
@@ -548,6 +572,7 @@ bool mov(int instructionNum) {
         }
         updateRegisters(destination);
     }
+    //TODO ADD SOURCE OFFSETS
     // cases where destination is a memory location
     else if ((destination.size()>1)&& destination.at(1) == '[' && destination.back() == ']') {
         if(destination.size()<4) {
@@ -616,111 +641,43 @@ bool mov(int instructionNum) {
                 memory[value+1] = (constant >> 8) & 0xff;
             }
         }
-        // case where the source is the contents of a memory offset pointed by a register
-        else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']') {
-            string registerName = source.substr(2,2);
-            if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
-                char sourceType = source.front();
-                if(sourceType!='B'&&sourceType!='W') {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Type can be only B or W";
-                    return false;
-                }
-                if (sourceType == 'B') {
-                    if(type!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else{
-                        memory[value] = memory[registers[registerName].first];
-                    }
 
-                }
-                if (sourceType == 'W') {
-                    if (type!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else {
-                        constant= memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256;
-                        memory[value] = constant & 0xff;
-                        memory[value+1] = (constant >> 8) & 0xff;
-                    }
-                }
-            }
-            else {
-                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+        else if (source == "OFFSET") {
+            string variable= tokens[op2+1];
+            if(variables.find(variable)==variables.end()) {
+                cout<<"Error at line: "<< lineNumber[instructionNum]<<" Offset must direct to memory address ";
                 return false;
             }
+           int address = variables[variable].first;
+            if ((type=='B'&&value>255)||value>65535) {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << " Overflow";
+                return false;
+            }
+            else {
+                if(type=='B')
+                memory[value] = address;
+
+                else if(type=='W') {
+                 memory[value]= address & 0xff ;
+                 memory[value+1]= (address>>8) & 0xff ;
+                }
+
+            }
+        }
+        else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']'&&registers.find(source.substr(2,2))!=registers.end()) {
+            cout<<"Error at line number"<<lineNumber[instructionNum]<<" Memory memory operations not allowed"<<endl;
+            return false;
         }
         // case where the source is the contents of a memory offset
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
-            char sourceType = source.front();
-            if (sourceType == 'B') {
-                if(type!=sourceType) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                string stIndex = source.substr(2, source.length()-3);
-                int index;
-                if (decimal(stIndex, index)) {
-                    memory[value] = memory[index];
-                }
-                else {
-                    cout <<"Error at line:"<< lineNumber[instructionNum] << "Incorrect memory address";
-                    return false;
-                }
-            }
-            else  if (type == 'W') {
-                string stIndex = source.substr(2, source.length()-3);
-                int index;
-                if (decimal(stIndex, index)) {
-                    if (type!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else {
-                        memory[value] = memory[index];
-                        memory[value+1] = memory[index+1];
-                    }
-                }
-                else {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
-                    return false;
-                }
-            }
+            cout<<"Error at line number"<<lineNumber[instructionNum]<<" Memory memory operations not allowed"<<endl;
+            return false;
         }
 
         //if source is variable
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
-            if(source=="B"||source=="W") {
-                string  newSource= tokens[instructionNum+3];
-                if(variables.find(newSource)==variables.end()) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "after B OR W You should put valid variable ";
-                    return false;
-                }
-                if ((variables[newSource].second=="DB"&&source=="W")||(variables[newSource].second=="DW"&&source=="B")) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
-                    return false;
-                }
-                source=newSource;
-            }
-            char sourceType = variables[source].second.back();
-            if (sourceType == 'B') {
-                if (sourceType!=type) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                memory[value] = memory[variables[source].first];
-            }
-            if (sourceType=='W') {
-                if (sourceType!=type) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                memory[value] = memory[variables[source].first];
-                memory[value+1] = memory[variables[source].first+1];
-
-            }
+            cout<<"Error at line number"<<lineNumber[instructionNum]<<" Memory memory operations not allowed"<<endl;
+            return false;
         }
         else {
             cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation";
@@ -795,107 +752,44 @@ bool mov(int instructionNum) {
                 memory[value+1] = (constant >> 8) & 0xff;
             }
         }
-
-        // case where the source is the contents of a memory offset pointed by a register
-        else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']') {
-            string registerName = source.substr(2,2);
-            int temp;
-            if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
-                char sourceType = source.front();
-                if(sourceType!='B'&&sourceType!='W') {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Type can be only B or W";
-                    return false;
-                }
-                if (sourceType == 'B') {
-                    if(type!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else{
-                        memory[value] = memory[registers[registerName].first];
-                    }
-                }
-                if (sourceType == 'W') {
-                    if (type!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else {
-                        constant= memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256;
-                        memory[value] = constant & 0xff;
-                        memory[value+1] = (constant >> 8) & 0xff;
-                    }
-                }
-            }
-            else if (!decimal(registerName, temp)) {
-                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+        //TODO check again, added recently
+        else if (source == "OFFSET") {
+            string variable= tokens[op2+1];
+            if(variables.find(variable)==variables.end()) {
+                cout<<"Error at line: "<< lineNumber[instructionNum]<<" Offset must direct to memory address ";
                 return false;
             }
+            int address = variables[variable].first;
+            if ((type=='B'&&value>255)||value>65535) {
+                cout <<"Error at line:"<<lineNumber[instructionNum] << " Overflow";
+                return false;
+            }
+            else {
+                if(type=='B')
+                    memory[value] = address;
+
+                else if(type=='W') {
+                    memory[value]= address & 0xff ;
+                    memory[value+1]= (address>>8) & 0xff ;
+                }
+
+            }
+        }
+
+        // case where the source is the contents of a memory offset pointed by a register
+        else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']'&& registers.find(source.substr(2,2))!=registers.end()) {
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " Memory memory operation is not possible in HYP86   "<<endl;
+            return false;
         }
         //case where the source contains a memory address
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
-            char sourceType = source.front();
-            if (sourceType == 'B') {
-                if(type!=sourceType) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                string stIndex = source.substr(2, source.length()-3);
-                int index;
-                if (decimal(stIndex, index)) {
-                    memory[value] = memory[index];
-                }
-                else {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
-                    return false;
-                }
-            }
-            else  if (type == 'W') {
-                if (type!=sourceType) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                string stIndex = source.substr(2, source.length()-3);
-                int index;
-                if (decimal(stIndex, index)) {
-                    memory[value] = memory[index];
-                    memory[value+1] = memory[index+1];
-                }
-                else {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
-                    return false;
-                }
-            }
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " Memory memory operation is not possible in HYP86   "<<endl;
+            return false;
+
         }
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
-            if(source=="B"||source=="W") {
-                string  newSource= tokens[instructionNum+3];
-                if(variables.find(newSource)==variables.end()) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "after B OR W You should put valid variable ";
-                    return false;
-                }
-                if ((variables[newSource].second=="DB"&&source=="W")||(variables[newSource].second=="DW"&&source=="B")) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
-                    return false;
-                }
-                source=newSource;
-            }
-            char sourceType = variables[source].second.back();
-            if (sourceType == 'B') {
-                if (sourceType!=type) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                memory[value] = memory[variables[source].first];
-            }
-            if (sourceType=='W') {
-                if (sourceType!=type) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                memory[value] = memory[variables[source].first];
-                memory[value+1] = memory[variables[source].first+1];
-            }
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " Memory memory operation is not possible in HYP86   "<<endl;
+            return false;
         }
         // to do: add cases where the source is offset and destination is a variable or memory location
         else {
@@ -1529,17 +1423,32 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 return false;
             }
             else {
+                if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")&&value>=32){
+                    cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" it should be either cl or a constant less than 32.";
+                    return false;
+                }
+
                 if(operation!="CMP")   //CMP
                     registers[destination].first = arithmeticUnit(val1, value, operation, optype);
                 else  arithmeticUnit(val1, value, operation, optype);
             }
         }
         else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
             value = source.at(1);
             if(operation!="CMP") registers[destination].first = arithmeticUnit(val1, value, operation, optype);
             else arithmeticUnit(val1, value, operation, optype);
         }
         else if (source == "OFFSET") {
+
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
+
             string variable= tokens[op2+1];
             if(variables.find(variable)==variables.end()) {
                 cout<<"Error at line: "<< lineNumber[instructionNum]<<" Offset must direct to memory address ";
@@ -1557,6 +1466,11 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         }
         // case where source is the contents of another register
         else if (registers.find(source) != registers.end()) {
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")&&source!="CL"){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
+
             if (registers[destination].second != registers[source].second) {
                 cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
                 return false;
@@ -1568,7 +1482,11 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             }
         }
         // case where the source is the contents of a memory offset pointed by a register
-        else if (source.size() == 5 && source.at(1) == '[' && source.at(4) == ']') {
+        else if (source.size() == 5 && source.at(1) == '[' && source.at(4) == ']'&&registers.find(source.substr(2,2))!=registers.end()) {
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
             string registerName = source.substr(2,2);
             if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
                 char type = source.front();
@@ -1605,6 +1523,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         }
         // case where the source is the contents of a memory offset
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
             char type = source.front();
             if (type == 'B') {
                 if(registers[destination].second!=255) {
@@ -1645,6 +1567,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         }
         //case where the source is a variable
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
             if(source=="B"||source=="W") {
                 string  newSource= tokens[instructionNum+3];
                 if(variables.find(newSource)==variables.end()) {
@@ -1678,7 +1604,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             }
         }
         else {
-            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for MOV operation";
+            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for "<<operation <<" operation";
             return false;
         }
         if(operation!="CMP")
@@ -1690,7 +1616,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         int val1;
         char optype;
         if(destination.size()<4) {
-            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for MOV operation";
+            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for "<<operation <<" operation";
         }
         string val = destination.substr(2, destination.length()-3);
         int address;
@@ -1703,6 +1629,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
                 cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register/number name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
                 return false;
             }
+        }
+        if(address<0||address>(65535)) {
+            cout <<"Error at line: "<<lineNumber[instructionNum] << " Index out of range ";
+            return false;
         }
         if ( optype == 'B') {
             val1 = memory[address];
@@ -1717,6 +1647,11 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         // if source is an immediate value
         int value;
         if (decimal(source, value)) {
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")&&value>=32){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
+
             if (optype == 'B') {
                 if (value > 255 || value < -255) {
                     cout <<"Error at line:"<<lineNumber[instructionNum] << "Overflow";
@@ -1746,6 +1681,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             }
         }
         else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
             value = source.at(1);
             if (optype == 'B' ) {
                 if(operation!="CMP")
@@ -1762,6 +1701,11 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         }
         // if source is the contents of a register
         else if (registers.find(source) != registers.end()) {
+
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")&&source!="CL"){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
             value = registers[source].first;
             if (optype == 'B' ) {
                 if (value > 255) {
@@ -1782,127 +1726,22 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             }
         }
         // case where the source is the contents of a memory offset pointed by a register
-        else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']') {
-            string registerName = source.substr(2,2);
-            if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
-                char sourceType = source.front();
-                if(sourceType!='B'&&sourceType!='W') {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Type can be only B or W";
-                    return false;
-                }
-                if (sourceType == 'B') {
-                    if(optype!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else{
-                        value = memory[registers[registerName].first];
-                        if(operation!="CMP") memory[address] =  arithmeticUnit(val1, value, operation, optype) ;
-                        else arithmeticUnit(val1, value, operation, optype) ;
-                    }
-                }
-                if (sourceType == 'W') {
-                    if (optype!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else {
-                        value= memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256;
-                        int result = arithmeticUnit(val1, value, operation, optype);
-                        if(operation!="CMP") {
-                            memory[address] = result & 0xff;
-                            memory[address + 1] = (result >> 8) & 0xff;
-                        }
-                    }
-                }
-            }
-            else if (!decimal(registerName, value)) {
-                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
-                return false;
-            }
+        else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']'&&registers.find(source.substr(2, 2))!=registers.end()) {
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " MEMORY MEMORY OPERATIONS NOT ALLOWED ";
+            return false;
         }
         // case where the source is the contents of a memory offset
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
-            char sourceType = source.front();
-            if (sourceType == 'B') {
-                if(optype!=sourceType) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                string stIndex = source.substr(2, source.length()-3);
-                int index;
-                if (decimal(stIndex, index)) {
-                    value = memory[index];
-                    if(operation!="CMP") memory[address] =  arithmeticUnit(val1, value, operation, optype) ;
-                    else arithmeticUnit(val1, value, operation, optype) ;
-                }
-                else {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
-                    return false;
-                }
-            }
-            else  if (optype == 'W') {
-                string stIndex = source.substr(2, source.length()-3);
-                int index;
-                if (decimal(stIndex, index)) {
-                    if (optype!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else {
-                        value = memory[index] + memory[index+1] * 256;
-                        int result = arithmeticUnit(val1, value, operation, optype);
-                        if(operation!="CMP") {
-                            memory[address] = result & 0xff;
-                            memory[address+1] = (result >> 8) & 0xff;
-                        }
-                    }
-                }
-                else {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
-                    return false;
-                }
-            }
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " MEMORY MEMORY OPERATIONS NOT ALLOWED ";
+            return false;
         }
         //if source is variable
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
-            if(source=="B"||source=="W") {
-                string  newSource= tokens[instructionNum+3];
-                if(variables.find(newSource)==variables.end()) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "after B OR W You should put valid variable ";
-                    return false;
-                }
-                if ((variables[newSource].second=="DB"&&source=="W")||(variables[newSource].second=="DW"&&source=="B")) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
-                    return false;
-                }
-                source=newSource;
-            }
-            char sourceType = variables[source].second.back();
-            if (sourceType == 'B') {
-                if (sourceType!=optype) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                value = memory[variables[source].first];
-                if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
-                else arithmeticUnit(val1, value, operation, optype);
-            }
-            if (sourceType=='W') {
-                if (sourceType!=optype) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                value = memory[variables[source].first]+  memory[variables[source].first+1]* 256;
-                int result = arithmeticUnit(val1, value, "ADD", optype);
-                if(operation!="CMP") {
-                    memory[address] = result & 0xff;
-                    memory[address+1] = (result >> 8) & 0xff;
-                }
-            }
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " MEMORY MEMORY OPERATIONS NOT ALLOWED ";
+            return false;
         }
         else {
-            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation";
+            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for" << operation;
             return false;
         }
     }
@@ -1913,7 +1752,7 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             destination= source;
             source= tokens[op2+1];
             if(variables.find(destination)==variables.end()) {
-                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation, after B or W, there should be a variable";
+                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for operation "<<operation<< " after B or W, there should be a variable";
             }
             if ((variables[destination].second=="DB"&&type=="W")||(variables[destination].second=="DW"&&destination=="B")) {
                 cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
@@ -1933,6 +1772,12 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         }
         // if source is an immediate value
         if (decimal(source, value)) {
+
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")&&value>=32){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
+
             if (optype == 'B') {
                 if (value > 255 || value < -255) {
                     cout <<"Error at line:"<<lineNumber[instructionNum] << "Overflow";
@@ -1959,6 +1804,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             }
         }
         else if (source.length() == 3 && source.front() == 39 && source.back() == 39) {
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
             value = source.at(1);
             if (optype == 'B' ) {
                 if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
@@ -1974,6 +1823,10 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
         }
         //if the source is the contents of the register
         else if (registers.find(source) != registers.end()) {
+            if((operation=="RCL"||operation=="RCR"||operation=="SHL"||operation=="SHR")&&source!="CL"){
+                cout <<"Error at line: " << lineNumber[instructionNum] << " "<<operation<<" :BAD SHIFT OPERAND- it should be either cl or a constant less than 32.";
+                return false;
+            }
             value = registers[source].first;
             if (optype == 'B' ) {
                 if (value > 255) {
@@ -1994,126 +1847,20 @@ bool twoOperandArithmetic(string& operation, int instructionNum) {
             }
         }
         else if ((source.size()==5) && source.at(1) == '[' && source.at(4) == ']'&&registers.find(source.substr(2,2))!=registers.end()) {
-            string registerName = source.substr(2,2);
-            if (registerName == "SI" || registerName == "DI" || registerName == "BX" || registerName == "BP") {
-                char sourceType = source.front();
-                if(sourceType!='B'&&sourceType!='W') {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Type can be only B or W";
-                    return false;
-                }
-                if (sourceType == 'B') {
-                    if(optype!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else{
-                        value = memory[registers[registerName].first];
-                        if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
-                        else  arithmeticUnit(val1, value, operation, optype);
-                    }
-
-                }
-                if (sourceType == 'W') {
-                    if (optype!=sourceType) {
-                        cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                        return false;
-                    }
-                    else {
-                        value = memory[registers[registerName].first]+ memory[registers[registerName].first+1]*256;
-                        int result = arithmeticUnit(val1, value, operation, optype);
-                        if(operation!="CMP") {
-                            memory[address] = result & 0xff;
-                            memory[address+1] = (result >> 8) & 0xff;
-                        }
-                    }
-                }
-            }
-            else {
-                cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
-                return false;
-            }
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " MEMORY MEMORY OPERATIONS NOT ALLOWED ";
+            return false;
         }
         //case where the source contains a memory address
         else if ((source.size()>1)&&(source.at(1) == '[' && source.back() == ']')) {
-            char sourceType = source.front();
-            if (sourceType == 'B') {
-                if(optype!=sourceType) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                string stIndex = source.substr(2, source.length()-3);
-                int index;
-                if (decimal(stIndex, index)) {
-                    value = memory[index];
-                    if(operation!="CMP") memory[address] = arithmeticUnit(val1, value, operation, optype);
-                    else arithmeticUnit(val1, value, operation, optype);
-                }
-                else {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
-                    return false;
-                }
-            }
-            else  if (optype == 'W') {
-                if (optype!=sourceType) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                string stIndex = source.substr(2, source.length()-3);
-                int index;
-                if (decimal(stIndex, index)) {
-                    value = memory[index] + memory[index+1] * 256;
-                    int result = arithmeticUnit(val1, value, operation, optype);
-                    if(operation!="CMP"){
-                        memory[address] = result & 0xff;
-                        memory[address+1] = (result >> 8) & 0xff;
-                    }
-                }
-
-                else {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect memory address";
-                    return false;
-                }
-            }
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " MEMORY MEMORY OPERATIONS NOT ALLOWED ";
+            return false;
         }
         else if ((variables.find(source) != variables.end())||(source=="B")||(source=="W")) {
-            if(source=="B"||source=="W") {
-                //there may be a problem below at indexing
-                string  newSource= tokens[instructionNum+3];
-                if(variables.find(newSource)==variables.end()) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << "after B OR W You should put valid variable ";
-                    return false;
-                }
-                if ((variables[newSource].second=="DB"&&source=="W")||(variables[newSource].second=="DW"&&source=="B")) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " after B, your variable type should be, after W your variable type should be W";
-                    return false;
-                }
-                source=newSource;
-            }
-            char sourceType = variables[source].second.back();
-            if (sourceType == 'B') {
-                if (sourceType!=optype) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                value = memory[variables[source].first];
-                int result =arithmeticUnit(val1, value, operation, optype);
-                if(operation!="CMP") memory[address] = result & 0xff;
-            }
-            if (sourceType=='W') {
-                if (sourceType!=optype) {
-                    cout <<"Error at line:"<<lineNumber[instructionNum] << " Byte Word combination not allowed";
-                    return false;
-                }
-                value = memory[variables[source].first] + memory[variables[source].first+1] * 256;
-                int result = arithmeticUnit(val1, value, operation, optype);
-                if(operation!="CMP") {
-                    memory[address] = result & 0xff;
-                    memory[address+1] = (result >> 8) & 0xff;
-                }
-            }
+            cout <<"Error at line:"<<lineNumber[instructionNum] << " MEMORY MEMORY OPERATIONS NOT ALLOWED ";
+            return false;
         }
         else {
-            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for mov operation";
+            cout <<"Error at line:"<<lineNumber[instructionNum] << "Incorrect operand for "<< operation;
             return false;
         }
     }
