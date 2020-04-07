@@ -196,11 +196,13 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
     for (int i = 0; i < tokens.size(); i++) {
         string curToken = tokens[i];
         if(i!=0&&lineNumber[i-1]!=lineNumber[i]&&instructions.find(curToken)==instructions.end()&&curToken!="CODE"&&curToken.back()!=':') {
-            if(!((i+1<tokens.size()&&tokens[i+1]=="DW")||tokens[i+1]=="DB" ))
-            cout<<"Error at line "<<lineNumber[i]<<" Unknown menomonic: "<< curToken<<endl;
+            if(!((i+1<tokens.size()&&tokens[i+1]=="DW")||tokens[i+1]=="DB" )) {
+            cout<<"Error at line "<<lineNumber[i]<<" Unknown mnemonic: "<< curToken<<endl;
+            return false;}
         }
         else if(i!=0&& lineNumber[i-1]==lineNumber[i]&& (instructions.find(curToken)!=instructions.end()||curToken.back()==':')) {
             cout<<"Error at line "<<lineNumber[i]<<" Invalid mnemonic: "<< curToken<<endl;
+            return false;
         }
         if(i==0&& (tokens[i]!="CODE"||tokens[i+1]!="SEGMENT")) {  cout<<"Error at line "<<lineNumber[i]<<" Unknown menomonic: "<< curToken<<endl;
         return false; }
@@ -940,7 +942,7 @@ bool push(int instructionNum) {
     else if (operand == "OFFSET") {
         string varName = tokens[instructionNum+2];
         if (variables.find(varName) == variables.end()) {
-            cout << "Unknown Mnemonic";
+            cout <<"Error at line number  "<< lineNumber[instructionNum] <<"Unknown Mnemonic";
             return false;
         }
         value = variables[varName].first;
@@ -952,7 +954,7 @@ bool push(int instructionNum) {
     // push the value at a memory location to the stack
     else if (operand.at(1) == '[' && operand.back() == ']') {
         if (operand.front() == 'B') {
-            cout << "Single byte values cannot be pushed onto the stack in A86.";
+            cout <<"Error at line number  "<< lineNumber[instructionNum] << " :Single byte values cannot be pushed onto the stack in A86.";
             return false;
         }
         else {
@@ -974,7 +976,7 @@ bool push(int instructionNum) {
                     return true;
                 }
                 else {
-                    cout << "Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
+                    cout <<"Error at line number  "<< lineNumber[instructionNum] << " Incorrect register name for addressing. Only following registers could be used for indexing in A86: SI, DI, BX, BP";
                     return false;
                 }
             }
@@ -982,13 +984,13 @@ bool push(int instructionNum) {
     }
     // push variable with type indicator to the stack
     else if (operand == "B") {
-        cout << "Single byte values cannot be pushed onto the stack in A86.";
+        cout <<" Error at line number  "<< lineNumber[instructionNum] << "Single byte values cannot be pushed onto the stack in A86.";
         return false;
     }
     else if (operand == "W") {
         string var = tokens[instructionNum+2];
         if (variables.find(var) == variables.end()) {
-            cout << "Invalid mnemonic";
+            cout <<"Error at line number  "<< lineNumber[instructionNum] << " Invalid mnemonic";
             return false;
         }
         else {
