@@ -36,13 +36,13 @@ bool andf(int instructionNum); // Executes and instruction
 void toUpperCase(string& token); // Turns a string uppercase
 unsigned int arithmeticUnit(int a,int b, string  operation, char type); // Performs arithmetic operations on two operands
 unsigned int arithmeticUnit(unsigned int a, string operation, char type); // Performs arithmetic operations on single operand
-bool twoOperandArithmetic(string& operation, int instructionNum);
-bool singleOperandArithmetic(string& operation, int instructionNum);
-bool generalJump(string& op, int& index) ;
-bool execute(int memoryIndexLimit);
-bool interrupt(int instructionNum, int& finish);
-bool stringFixer(string& op1, string& op2);
-int main() {
+bool twoOperandArithmetic(string& operation, int instructionNum); // Driver function for two operand arithmetic instructions
+bool singleOperandArithmetic(string& operation, int instructionNum); // Driver fn-unction for single operand arithmetic instruction
+bool generalJump(string& op, int& index) ; // Method for jump instruction that changes the value of the instruction pointer
+bool execute(int memoryIndexLimit); // Executes the instructions in memory linearly
+bool interrupt(int instructionNum, int& finish); // Method for interrupt instructions
+bool stringFixer(string& op1, string& op2); // Utility method for fixing some tokens
+int main(int argc, char *argv[]) {
     /* Here we are initializing our registers and flags */
     // 8 bit registers
     registers["AH"] = make_pair(0, 255);
@@ -66,56 +66,9 @@ int main() {
     flags["ZF"] = 0; flags["AF"] = 0; flags["CF"] = 0; flags["SF"] = 0; flags["0F"] = 0;
     // Following code parses the input program and loads it into memory using the initializeTokens function
     ifstream inFile;
-    inFile.open("../test.txt");
+    inFile.open(argv[1]);
     initializeTokens(inFile);
     execute(instructionLim);
-
-    //   Following code prints out the state of the processor to the standard output
-    cout<<endl;
-    cout<<"------------------------------------------------------------------"<<endl;
-    cout<<"------------------------------------------------------------------"<<endl;
-    cout<<"------------------------------------------------------------------"<<endl;
-    cout<<"------------------------------------------------------------------"<<endl;
-    cout<<"------------------------------------------------------------------"<<endl;
-
-    for(auto iter= tokens.begin(); iter!=tokens.end(); iter++) {
-        cout<<*iter<< " " << endl;
-    }
-    cout << endl;
-
-
-    cout << "Memory "<< instructionLim<<endl;
-    for (int i=0; i<instructionLim; i++) {
-        cout << memory[i] << " ";
-    }
-
-    cout<<endl;
-    for(int i=0; i<lineNumber.size(); i++) {
-        cout << lineNumber[i] << " ";
-    }
-    cout<<endl;
-
-    cout << "\n";
-    cout << "\n";
-    cout << "Registers\n";
-    for (auto it = registers.begin(); it !=registers.end(); it++) {
-        cout << it->first << " " << it->second.first << " " << it->second.second << "\n";
-    }
-    cout << "\n";
-    cout << "Variables\n";
-    for (auto it = variables.cbegin(); it !=variables.cend(); it++) {
-        if(it->second.second=="DB")
-        cout << it->first << " " << it->second.first << " " << it->second.second <<" value: "<< memory[it->second.first]<<"\n";
-        if(it->second.second=="DW")
-            cout << it->first << " " << it->second.first << " " << it->second.second <<" value: "<< memory[it->second.first] +memory[it->second.first+1]*256<<"\n";
-    }
-    cout << "\n";
-    cout <<"Labels\n";
-    for (auto it = labels.begin(); it !=labels.end(); it++) {
-        cout << it->first << " " << it->second << "\n";
-    }
-    cout << "\nFlags\n";
-    cout << "ZF = " << flags["ZF"] << " AF = " << flags["AF"]<<" CF = "<< flags["CF"] <<" SF = " << flags["SF"] << " OF = " << flags["OF"];
 }
 
 bool initializeTokens(ifstream& inFile) { // Function to read the input program, write the tokens to the tokens vector and initialize memory
@@ -902,9 +855,9 @@ bool push(int instructionNum) {
             return false;
         }
         else {
-            registers["SP"].first-=2;
             memory[registers["SP"].first] = registers[operand].first & 0xff;
             memory[registers["SP"].first+1]= (registers[operand].first >> 8) & 0xff;
+            registers["SP"].first-=2;
             return true;
         }
     }
@@ -915,16 +868,16 @@ bool push(int instructionNum) {
             cout << "Overflow";
             return false;
         }
-        registers["SP"].first-=2;
         memory[registers["SP"].first] = value & 0xff;
         memory[registers["SP"].first+1]= (value >> 8) & 0xff;
+        registers["SP"].first-=2;
         return true;
     }
     else if (operand.front() == 39 && operand.back() == 39 && operand.length() == 3) {
         value = operand.at(1);
-        registers["SP"].first-=2;
         memory[registers["SP"].first] = value & 0xff;
         memory[registers["SP"].first+1]= (value >> 8) & 0xff;
+        registers["SP"].first-=2;
         return true;
     }
     else if (variables.find(operand) != variables.end()) {
@@ -933,9 +886,9 @@ bool push(int instructionNum) {
             return false;
         }
         value = fetchValue(operand);
-        registers["SP"].first-=2;
         memory[registers["SP"].first] = value & 0xff;
         memory[registers["SP"].first+1]= (value >> 8) & 0xff;
+        registers["SP"].first-=2;
         return true;
     }
     // push an address of a variable to the stack
@@ -946,9 +899,9 @@ bool push(int instructionNum) {
             return false;
         }
         value = variables[varName].first;
-        registers["SP"].first-=2;
         memory[registers["SP"].first] = value & 0xff;
         memory[registers["SP"].first+1]= (value >> 8) & 0xff;
+        registers["SP"].first-=2;
         return true;
     }
     // push the value at a memory location to the stack
@@ -961,18 +914,19 @@ bool push(int instructionNum) {
             string val = operand.substr(2,operand.length()-3);
             // number indexing
             if (decimal(val, value)) {
-                registers["SP"].first-=2;
+
                 memory[registers["SP"].first] = memory[value];
                 memory[registers["SP"].first+1] = memory[value+1];
+                registers["SP"].first-=2;
                 return true;
             }
             // register indexing
             else if (registers.find(operand.substr(2,operand.length()-3)) != registers.end()) {
                 if (val == "SI" || val == "DI" || val == "BX" || val == "BP") {
                     value = registers[val].first;
-                    registers["SP"].first-=2;
                     memory[registers["SP"].first] = memory[value];
                     memory[registers["SP"].first+1] = memory[value+1];
+                    registers["SP"].first-=2;
                     return true;
                 }
                 else {
@@ -995,9 +949,9 @@ bool push(int instructionNum) {
         }
         else {
             value = fetchValue(var);
-            registers["SP"].first-=2;
             memory[registers["SP"].first] = value & 0xff;
             memory[registers["SP"].first+1]= (value >> 8) & 0xff;
+            registers["SP"].first-=2;
             return true;
         }
     }
@@ -1007,17 +961,21 @@ bool push(int instructionNum) {
 
 bool pop(int instructionNum) {
     string operand = tokens[instructionNum+1];
+    if (registers["SP"].first == 0xFFFE) {
+        cout << "Popping out of empty stack";
+        return false;
+    }
     // pop into register
     if (registers.find(operand)!= registers.end()) {
         if (registers[operand].second == 255) {
-            cout << "Expecting constant";
+            cout << "Can't pop into 8 bit register";
             return false;
         }
         else {
-            registers[operand].first = memory[registers["SP"].first];
-            registers[operand].first += (memory[registers["SP"].first+1]<<8);
-            memory[registers["SP"].first] = -1;
-            memory[registers["SP"].first+1] = -1;
+            registers[operand].first = memory[registers["SP"].first+2];
+            registers[operand].first += (memory[registers["SP"].first+3]<<8);
+            memory[registers["SP"].first+2] = -1;
+            memory[registers["SP"].first+3] = -1;
             registers["SP"].first+=2;
             updateRegisters(operand);
             return true;
@@ -1031,10 +989,10 @@ bool pop(int instructionNum) {
         }
         else {
             int address = variables[operand].first;
-            memory[address] = memory[registers["SP"].first];
-            memory[address+1] = memory[registers["SP"].first+1];
-            memory[registers["SP"].first] = -1;
-            memory[registers["SP"].first+1] = -1;
+            memory[address] = memory[registers["SP"].first+2];
+            memory[address+1] = memory[registers["SP"].first+3];
+            memory[registers["SP"].first+2] = -1;
+            memory[registers["SP"].first+3] = -1;
             registers["SP"].first+=2;
             return true;
         }
@@ -1050,10 +1008,10 @@ bool pop(int instructionNum) {
             string val = operand.substr(2,operand.length()-3);
             // number indexing
             if (decimal(val, address)) {
-                memory[address] = memory[registers["SP"].first];
-                memory[address+1] = memory[registers["SP"].first+1];
-                memory[registers["SP"].first] = -1;
-                memory[registers["SP"].first+1] = -1;
+                memory[address] = memory[registers["SP"].first+2];
+                memory[address+1] = memory[registers["SP"].first+3];
+                memory[registers["SP"].first+2] = -1;
+                memory[registers["SP"].first+3] = -1;
                 registers["SP"].first+=2;
                 return true;
             }
@@ -1061,10 +1019,10 @@ bool pop(int instructionNum) {
             else if (registers.find(operand.substr(2,operand.length()-3)) != registers.end()) {
                 if (val == "SI" || val == "DI" || val == "BX" || val == "BP") {
                     address = registers[val].first;
-                    memory[address] = memory[registers["SP"].first];
-                    memory[address+1] = memory[registers["SP"].first+1];
-                    memory[registers["SP"].first] = -1;
-                    memory[registers["SP"].first+1] = -1;
+                    memory[address] = memory[registers["SP"].first]+2;
+                    memory[address+1] = memory[registers["SP"].first+3];
+                    memory[registers["SP"].first+2] = -1;
+                    memory[registers["SP"].first+3] = -1;
                     registers["SP"].first+=2;
                     return true;
                 }
