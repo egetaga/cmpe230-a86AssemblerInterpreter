@@ -81,6 +81,15 @@ bool initializeTokens(ifstream& inFile) { // Function to read the input program,
         int lineNum{1};
         while (getline(inFile, line)) {
             string curToken = "";
+            string newL="";
+            for(int i=0; i<line.size(); i++) {
+                if(line[i]!='\r'){
+                    newL.push_back(line[i]);
+                }
+            }
+            line=newL;
+
+
             while (line.front() == ' ') line.erase(0,1);
             while (line.back() == ' ') line.pop_back();
             for (int i=0; i<line.length(); i++) {
